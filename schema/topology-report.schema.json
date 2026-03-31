@@ -1,0 +1,589 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TopologyReport",
+  "description": "A comprehensive topology report mapping routes, APIs, middleware, and external services in a web application",
+  "type": "object",
+  "required": [
+    "meta",
+    "nodes",
+    "connectors",
+    "groups",
+    "summary"
+  ],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "description": "Metadata about the topology report generation",
+      "required": [
+        "tool",
+        "version",
+        "generatedAt",
+        "framework",
+        "projectName",
+        "mode"
+      ],
+      "properties": {
+        "tool": {
+          "type": "string",
+          "enum": [
+            "shipmap"
+          ],
+          "description": "The tool that generated this report"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the shipmap tool",
+          "example": "0.3.0"
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when the report was generated",
+          "example": "2025-12-10T14:30:00Z"
+        },
+        "framework": {
+          "type": "string",
+          "enum": [
+            "nextjs",
+            "vite-react",
+            "remix",
+            "nuxt",
+            "sveltekit",
+            "astro",
+            "react-router-spa",
+            "generic"
+          ],
+          "description": "The web framework detected in the project"
+        },
+        "frameworkVersion": {
+          "type": "string",
+          "description": "Version of the detected framework",
+          "example": "14.0.0"
+        },
+        "projectName": {
+          "type": "string",
+          "description": "Name of the project being analyzed",
+          "example": "my-next-app"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "static",
+            "probe"
+          ],
+          "description": "Analysis mode: 'static' for code-only analysis, 'probe' for runtime probing"
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "description": "Array of all topology nodes (pages, APIs, middleware, and external services)",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/RouteNode"
+          },
+          {
+            "$ref": "#/definitions/MiddlewareNode"
+          },
+          {
+            "$ref": "#/definitions/ExternalNode"
+          }
+        ]
+      }
+    },
+    "connectors": {
+      "type": "array",
+      "description": "Array of connections between nodes representing dependencies and relationships",
+      "items": {
+        "$ref": "#/definitions/Connector"
+      }
+    },
+    "groups": {
+      "type": "object",
+      "description": "Mapping of group names to arrays of node IDs for organizational purposes",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "example": {
+        "auth": [
+          "api-login",
+          "api-logout"
+        ],
+        "products": [
+          "page-products",
+          "api-products"
+        ]
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Summary statistics about the topology",
+      "required": [
+        "totalRoutes",
+        "totalApiRoutes",
+        "totalMiddleware",
+        "totalExternals",
+        "protectedRoutes",
+        "renderingBreakdown"
+      ],
+      "properties": {
+        "totalRoutes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of page routes"
+        },
+        "totalApiRoutes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of API routes"
+        },
+        "totalMiddleware": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of middleware handlers"
+        },
+        "totalExternals": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of external services/dependencies"
+        },
+        "protectedRoutes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of routes marked as protected/authenticated"
+        },
+        "renderingBreakdown": {
+          "type": "object",
+          "description": "Count of routes by rendering strategy",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "example": {
+            "SSR": 5,
+            "SSG": 3,
+            "Client": 2,
+            "ISR": 1
+          }
+        },
+        "errors": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of errors encountered during analysis"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "RouteNode": {
+      "type": "object",
+      "description": "Represents a page route or API endpoint",
+      "required": [
+        "id",
+        "type",
+        "path",
+        "filePath",
+        "group",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the node",
+          "example": "page-home"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "page",
+            "api"
+          ],
+          "description": "Node type: 'page' for frontend routes, 'api' for backend endpoints"
+        },
+        "path": {
+          "type": "string",
+          "description": "Route path or API endpoint path",
+          "example": "/api/users/[id]"
+        },
+        "filePath": {
+          "type": "string",
+          "description": "File system path to the route handler",
+          "example": "app/api/users/[id]/route.ts"
+        },
+        "group": {
+          "type": "string",
+          "description": "Organizational group for visual clustering",
+          "example": "user-management"
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable label for the route",
+          "example": "Get User by ID"
+        },
+        "methods": {
+          "type": "array",
+          "description": "HTTP methods supported by this route (API routes only)",
+          "items": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE",
+              "PATCH",
+              "HEAD",
+              "OPTIONS"
+            ]
+          },
+          "example": [
+            "GET",
+            "PATCH"
+          ]
+        },
+        "rendering": {
+          "type": "string",
+          "enum": [
+            "SSR",
+            "SSG",
+            "ISR",
+            "Edge",
+            "Static",
+            "Client",
+            "Unknown"
+          ],
+          "description": "Rendering strategy for page routes"
+        },
+        "isProtected": {
+          "type": "boolean",
+          "description": "Whether the route requires authentication"
+        },
+        "cacheConfig": {
+          "type": "string",
+          "description": "Cache configuration directives",
+          "example": "public, max-age=3600"
+        },
+        "middleware": {
+          "type": "array",
+          "description": "IDs of middleware that apply to this route",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "middleware-auth",
+            "middleware-cors"
+          ]
+        },
+        "externals": {
+          "type": "array",
+          "description": "IDs of external services called by this route",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "external-stripe",
+            "external-sendgrid"
+          ]
+        },
+        "probe": {
+          "$ref": "#/definitions/ProbeResult",
+          "description": "Runtime probe results for this route (only in probe mode)"
+        }
+      }
+    },
+    "MiddlewareNode": {
+      "type": "object",
+      "description": "Represents a middleware handler or interceptor",
+      "required": [
+        "id",
+        "type",
+        "filePath",
+        "label",
+        "group",
+        "matcherPatterns",
+        "runtime"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the middleware",
+          "example": "middleware-auth"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "middleware"
+          ],
+          "description": "Node type identifier"
+        },
+        "filePath": {
+          "type": "string",
+          "description": "File system path to the middleware handler",
+          "example": "middleware.ts"
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable label for the middleware",
+          "example": "Authentication Middleware"
+        },
+        "group": {
+          "type": "string",
+          "description": "Organizational group for visual clustering",
+          "example": "security"
+        },
+        "matcherPatterns": {
+          "type": "array",
+          "description": "URL patterns that trigger this middleware",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "/api/*",
+            "/admin/*"
+          ]
+        },
+        "authProvider": {
+          "type": "string",
+          "description": "Authentication provider used by this middleware",
+          "example": "auth0"
+        },
+        "redirectTarget": {
+          "type": "string",
+          "description": "URL to redirect to if middleware action is triggered",
+          "example": "/login"
+        },
+        "runtime": {
+          "type": "string",
+          "enum": [
+            "edge",
+            "node"
+          ],
+          "description": "Runtime environment where middleware executes"
+        }
+      }
+    },
+    "ExternalNode": {
+      "type": "object",
+      "description": "Represents an external service or third-party API",
+      "required": [
+        "id",
+        "type",
+        "name",
+        "label",
+        "group",
+        "detectedFrom",
+        "referencedBy"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the external service",
+          "example": "external-stripe"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "external"
+          ],
+          "description": "Node type identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Internal name of the external service",
+          "example": "stripe"
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable label for the external service",
+          "example": "Stripe Payment API"
+        },
+        "group": {
+          "type": "string",
+          "description": "Organizational group for visual clustering",
+          "example": "payments"
+        },
+        "host": {
+          "type": "string",
+          "description": "Host or base URL of the external service",
+          "example": "api.stripe.com"
+        },
+        "detectedFrom": {
+          "type": "string",
+          "enum": [
+            "env",
+            "import",
+            "both"
+          ],
+          "description": "How the external service was detected: from environment variables, code imports, or both"
+        },
+        "referencedBy": {
+          "type": "array",
+          "description": "IDs of nodes that reference this external service",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "api-checkout",
+            "api-refund"
+          ]
+        },
+        "probe": {
+          "type": "object",
+          "description": "Runtime probe results for reachability (only in probe mode)",
+          "properties": {
+            "reachable": {
+              "type": "boolean",
+              "description": "Whether the external service is reachable"
+            },
+            "latency": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Latency in milliseconds to reach the service"
+            },
+            "probedAt": {
+              "type": "string",
+              "format": "date-time",
+              "description": "ISO 8601 timestamp when the service was probed"
+            }
+          }
+        }
+      }
+    },
+    "Connector": {
+      "type": "object",
+      "description": "Represents a connection between two nodes indicating a dependency or relationship",
+      "required": [
+        "source",
+        "target",
+        "type",
+        "confidence",
+        "style",
+        "color"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "ID of the source node",
+          "example": "page-checkout"
+        },
+        "target": {
+          "type": "string",
+          "description": "ID of the target node",
+          "example": "external-stripe"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "call",
+            "middleware-coverage",
+            "external-dependency",
+            "inferred"
+          ],
+          "description": "Type of connection: 'call' for direct calls, 'middleware-coverage' for middleware application, 'external-dependency' for external service calls, 'inferred' for inferred connections"
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "static",
+            "probed",
+            "inferred"
+          ],
+          "description": "Confidence level of the connection: 'static' from code analysis, 'probed' from runtime testing, 'inferred' from static analysis heuristics"
+        },
+        "label": {
+          "type": "string",
+          "description": "Optional label describing the connection",
+          "example": "charges.create()"
+        },
+        "style": {
+          "type": "string",
+          "enum": [
+            "solid",
+            "dashed"
+          ],
+          "description": "Visual style: 'solid' for confirmed connections, 'dashed' for uncertain ones"
+        },
+        "color": {
+          "type": "string",
+          "enum": [
+            "green",
+            "amber",
+            "red",
+            "orange",
+            "grey",
+            "blue"
+          ],
+          "description": "Visual color: green for healthy, amber/orange for warning, red for error, grey for unknown, blue for info"
+        }
+      }
+    },
+    "ProbeResult": {
+      "type": "object",
+      "description": "Results from runtime probing of a route or service",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "slow",
+            "warn",
+            "error",
+            "not-probed"
+          ],
+          "description": "Overall status from probing"
+        },
+        "httpStatus": {
+          "type": "integer",
+          "description": "HTTP status code returned",
+          "example": 200
+        },
+        "responseTime": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Response time in milliseconds",
+          "example": 145
+        },
+        "probedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when probing occurred"
+        },
+        "methodResults": {
+          "type": "object",
+          "description": "Results broken down by HTTP method (for routes supporting multiple methods)",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "httpStatus": {
+                "type": "integer",
+                "description": "HTTP status code for this method"
+              },
+              "responseTime": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Response time in milliseconds for this method"
+              }
+            },
+            "required": [
+              "httpStatus",
+              "responseTime"
+            ]
+          },
+          "example": {
+            "GET": {
+              "httpStatus": 200,
+              "responseTime": 120
+            },
+            "POST": {
+              "httpStatus": 201,
+              "responseTime": 250
+            }
+          }
+        }
+      }
+    }
+  }
+}

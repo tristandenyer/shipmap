@@ -10,7 +10,9 @@ import { probeExternals } from './probe/external.js';
 import { writeProbeCache, writeLastReport, readLastReport, readReportFromPath, archiveReport } from './probe/cache.js';
 import { compareTopology } from './diff/compare.js';
 import { generateMarkdown } from './diff/markdown.js';
+import { evaluateCi, formatCiOutput } from './ci/runner.js';
 import type { TopologyReport, RouteNode, ExternalNode } from './types.js';
+import type { CiFailRule } from './ci/runner.js';
 
 export function createCli(): Command {
   const program = new Command();
@@ -18,7 +20,7 @@ export function createCli(): Command {
   program
     .name('shipmap')
     .description('Map it before you ship it. Generate an interactive topology map of your project.')
-    .version('0.3.0');
+    .version('0.4.0');
 
   program
     .argument('[directory]', 'Project directory to scan', '.')
@@ -35,6 +37,8 @@ export function createCli(): Command {
     .option('--diff', 'Compare to previous run and highlight changes')
     .option('--diff-from <path>', 'Compare to a specific previous report JSON')
     .option('--markdown', 'Output topology as Markdown table')
+    .option('--ci', 'Exit with non-zero code on failures')
+    .option('--ci-fail-on <rules>', 'Comma-separated failure rules (default: "errors")', 'errors')
     .action(async (directory: string, options: {
       output: string;
       json?: boolean;
@@ -49,11 +53,13 @@ export function createCli(): Command {
       diff?: boolean;
       diffFrom?: string;
       markdown?: boolean;
+      ci?: boolean;
+      ciFailOn: string;
     }) => {
       const projectDir = resolve(directory);
       const log = options.quiet ? (() => {}) : console.log;
 
-      log('\n  ⚓ shipmap v0.3.0 — Map it before you ship it\n');
+      log('\n  ⚓ shipmap v0.4.0 — Map it before you ship it\n');
 
       try {
         // Load config file
@@ -270,6 +276,52 @@ export function createCli(): Command {
           await writeLastReport(projectDir, report);
           await archiveReport(projectDir, report);
           return;
+        }
+
+        // CI mode
+        if (options.ci) {
+          const failRules = options.ciFailOn
+            .split(',')
+            .map((r) => r.trim())
+            .filter((r): r is CiFailRule => ['errors', 'slow', 'unprotected', 'unreachable', 'new-unreviewed'].includes(r));
+
+          const isTTY = process.stdout.isTTY ?? false;
+          const ciResult = evaluateCi(report, failRules, {
+            slowThreshold: parseInt(options.probeTimeout, 10),
+            diffResult,
+            protectedRouteIds: new Set(
+              report.nodes
+                .filter((n) => n.type === 'page' || n.type === 'api')
+                .filter((n: any) => n.isProtected)
+                .map((n) => n.id),
+            ),
+          });
+
+          if (options.json) {
+            const outputPath = options.output.endsWith('.html')
+              ? options.output.replace('.html', '.json')
+              : options.output;
+            const jsonOutput = {
+              ...report,
+              ci: {
+                result: ciResult,
+                exitCode: ciResult.exitCode,
+              },
+            };
+            await writeFile(outputPath, JSON.stringify(jsonOutput, null, 2));
+            if (!options.quiet) {
+              log(`\n  ✓ CI report saved to ${outputPath}\n`);
+            }
+          } else {
+            const ciOutput = formatCiOutput(ciResult, report, isTTY);
+            if (!options.quiet) {
+              process.stdout.write(ciOutput);
+            }
+          }
+
+          await writeLastReport(projectDir, report);
+          await archiveReport(projectDir, report);
+          process.exit(ciResult.exitCode);
         }
 
         // Watch/serve mode

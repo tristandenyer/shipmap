@@ -1,26 +1,54 @@
 import { readFile } from 'node:fs/promises';
 import { join, basename } from 'node:path';
-import type { TopologyReport, TopologyNode, Connector } from '../types.js';
+import type { TopologyReport, TopologyNode, Connector, FrameworkType } from '../types.js';
 import { detectFramework } from '../detect/framework.js';
-import { discoverPageRoutes } from './nextjs/routes.js';
-import { discoverApiRoutes } from './nextjs/api.js';
-import { discoverMiddleware } from './nextjs/middleware.js';
-import { discoverExternals } from './nextjs/externals.js';
+import type { FrameworkDiscoverer } from './types.js';
+
+async function getDiscoverer(frameworkType: FrameworkType): Promise<FrameworkDiscoverer> {
+  switch (frameworkType) {
+    case 'nextjs': {
+      const mod = await import('./nextjs/discoverer.js');
+      return mod.nextjsDiscoverer;
+    }
+    case 'vite-react': {
+      const mod = await import('./vite-react/discoverer.js');
+      return mod.viteReactDiscoverer;
+    }
+    case 'remix': {
+      const mod = await import('./remix/discoverer.js');
+      return mod.remixDiscoverer;
+    }
+    case 'sveltekit': {
+      const mod = await import('./sveltekit/discoverer.js');
+      return mod.sveltekitDiscoverer;
+    }
+    case 'astro': {
+      const mod = await import('./astro/discoverer.js');
+      return mod.astroDiscoverer;
+    }
+    case 'nuxt': {
+      const mod = await import('./nuxt/discoverer.js');
+      return mod.nuxtDiscoverer;
+    }
+    case 'react-router-spa': {
+      const mod = await import('./react-router-spa/discoverer.js');
+      return mod.reactRouterSpaDiscoverer;
+    }
+    case 'generic': {
+      const mod = await import('./generic/discoverer.js');
+      return mod.genericDiscoverer;
+    }
+  }
+}
 
 export async function discover(projectDir: string): Promise<TopologyReport> {
   const framework = await detectFramework(projectDir);
-
-  if (framework.type !== 'nextjs') {
-    throw new Error(
-      `Framework "${framework.type}" is not yet supported. Phase 1 supports Next.js only.`,
-    );
-  }
-
+  const discoverer = await getDiscoverer(framework.type);
   const projectName = await getProjectName(projectDir);
 
   // Discover all route types
-  const pageRoutes = await discoverPageRoutes(projectDir);
-  const apiRoutes = await discoverApiRoutes(projectDir);
+  const pageRoutes = await discoverer.discoverRoutes(projectDir);
+  const apiRoutes = await discoverer.discoverApiRoutes(projectDir);
 
   // Build route file map for middleware and externals
   const routeNodeIds = new Map<string, string>();
@@ -31,8 +59,8 @@ export async function discover(projectDir: string): Promise<TopologyReport> {
   }
 
   // Discover middleware and externals
-  const middlewareResult = await discoverMiddleware(projectDir, routeNodeIds);
-  const externalsResult = await discoverExternals(projectDir, routeFileMap);
+  const middlewareResult = await discoverer.discoverMiddleware(projectDir, routeNodeIds);
+  const externalsResult = await discoverer.discoverExternals(projectDir, routeFileMap);
 
   // Collect all nodes and connectors
   const nodes: TopologyNode[] = [...pageRoutes, ...apiRoutes];
@@ -68,7 +96,7 @@ export async function discover(projectDir: string): Promise<TopologyReport> {
   const report: TopologyReport = {
     meta: {
       tool: 'shipmap',
-      version: '0.3.0',
+      version: '0.4.0',
       generatedAt: new Date().toISOString(),
       framework: framework.type,
       frameworkVersion: framework.version,

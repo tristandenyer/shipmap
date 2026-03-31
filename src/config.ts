@@ -10,6 +10,19 @@ export interface ShipmapConfig {
     timeout?: number;
     concurrency?: number;
   };
+
+  discovery?: {
+    exclude?: string[];
+    include?: string[];
+  };
+
+  groups?: Record<string, string | string[]>;
+
+  ci?: {
+    failOn?: string[];
+    slowThreshold?: number;
+    allowUnprotected?: string[];
+  };
 }
 
 const CONFIG_FILES = ['shipmap.config.js', 'shipmap.config.mjs'];
@@ -38,6 +51,8 @@ function validateConfig(config: unknown): asserts config is ShipmapConfig {
     throw new Error('Invalid shipmap config: must export a default object');
   }
   const c = config as any;
+
+  // Validate probe
   if (c.probe !== undefined) {
     if (typeof c.probe !== 'object' || c.probe === null) {
       throw new Error('Invalid shipmap config: probe must be an object');
@@ -56,6 +71,50 @@ function validateConfig(config: unknown): asserts config is ShipmapConfig {
     }
     if (c.probe.headers !== undefined && (typeof c.probe.headers !== 'object' || c.probe.headers === null)) {
       throw new Error('Invalid shipmap config: probe.headers must be an object');
+    }
+  }
+
+  // Validate discovery
+  if (c.discovery !== undefined) {
+    if (typeof c.discovery !== 'object' || c.discovery === null) {
+      throw new Error('Invalid shipmap config: discovery must be an object');
+    }
+    if (c.discovery.exclude !== undefined && !Array.isArray(c.discovery.exclude)) {
+      throw new Error('Invalid shipmap config: discovery.exclude must be an array');
+    }
+    if (c.discovery.include !== undefined && !Array.isArray(c.discovery.include)) {
+      throw new Error('Invalid shipmap config: discovery.include must be an array');
+    }
+  }
+
+  // Validate groups
+  if (c.groups !== undefined) {
+    if (typeof c.groups !== 'object' || c.groups === null) {
+      throw new Error('Invalid shipmap config: groups must be an object');
+    }
+    for (const [, value] of Object.entries(c.groups)) {
+      if (typeof value !== 'string' && !Array.isArray(value)) {
+        throw new Error('Invalid shipmap config: groups values must be strings or arrays');
+      }
+      if (Array.isArray(value) && !value.every((v) => typeof v === 'string')) {
+        throw new Error('Invalid shipmap config: groups array values must contain only strings');
+      }
+    }
+  }
+
+  // Validate ci
+  if (c.ci !== undefined) {
+    if (typeof c.ci !== 'object' || c.ci === null) {
+      throw new Error('Invalid shipmap config: ci must be an object');
+    }
+    if (c.ci.failOn !== undefined && !Array.isArray(c.ci.failOn)) {
+      throw new Error('Invalid shipmap config: ci.failOn must be an array');
+    }
+    if (c.ci.slowThreshold !== undefined && typeof c.ci.slowThreshold !== 'number') {
+      throw new Error('Invalid shipmap config: ci.slowThreshold must be a number');
+    }
+    if (c.ci.allowUnprotected !== undefined && !Array.isArray(c.ci.allowUnprotected)) {
+      throw new Error('Invalid shipmap config: ci.allowUnprotected must be an array');
     }
   }
 }

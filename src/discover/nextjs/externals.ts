@@ -10,23 +10,23 @@ interface ExternalServicePattern {
 }
 
 const SERVICE_PATTERNS: ExternalServicePattern[] = [
-  { name: 'Stripe', envPrefixes: ['STRIPE_'], importPatterns: ['stripe', '@stripe/stripe-js'] },
-  { name: 'Supabase', envPrefixes: ['SUPABASE_', 'NEXT_PUBLIC_SUPABASE_'], importPatterns: ['@supabase/supabase-js', '@supabase/ssr'] },
-  { name: 'Firebase', envPrefixes: ['FIREBASE_', 'NEXT_PUBLIC_FIREBASE_'], importPatterns: ['firebase', 'firebase-admin'] },
-  { name: 'AWS', envPrefixes: ['AWS_'], importPatterns: ['@aws-sdk/'] },
-  { name: 'OpenAI', envPrefixes: ['OPENAI_'], importPatterns: ['openai'] },
-  { name: 'Anthropic', envPrefixes: ['ANTHROPIC_'], importPatterns: ['@anthropic-ai/sdk'] },
-  { name: 'Resend', envPrefixes: ['RESEND_'], importPatterns: ['resend'] },
-  { name: 'SendGrid', envPrefixes: ['SENDGRID_'], importPatterns: ['@sendgrid/mail'] },
-  { name: 'Twilio', envPrefixes: ['TWILIO_'], importPatterns: ['twilio'] },
-  { name: 'Cloudinary', envPrefixes: ['CLOUDINARY_'], importPatterns: ['cloudinary'] },
-  { name: 'Sentry', envPrefixes: ['SENTRY_', 'NEXT_PUBLIC_SENTRY_'], importPatterns: ['@sentry/nextjs', '@sentry/node'] },
-  { name: 'Redis', envPrefixes: ['REDIS_'], importPatterns: ['ioredis', 'redis', '@upstash/redis'] },
-  { name: 'Clerk', envPrefixes: ['CLERK_', 'NEXT_PUBLIC_CLERK_'], importPatterns: ['@clerk/nextjs'] },
+  { name: 'Stripe', envPrefixes: ['STRIPE_', 'VITE_STRIPE_'], importPatterns: ['stripe', '@stripe/stripe-js'] },
+  { name: 'Supabase', envPrefixes: ['SUPABASE_', 'NEXT_PUBLIC_SUPABASE_', 'VITE_SUPABASE_'], importPatterns: ['@supabase/supabase-js', '@supabase/ssr'] },
+  { name: 'Firebase', envPrefixes: ['FIREBASE_', 'NEXT_PUBLIC_FIREBASE_', 'VITE_FIREBASE_'], importPatterns: ['firebase', 'firebase-admin'] },
+  { name: 'AWS', envPrefixes: ['AWS_', 'VITE_AWS_'], importPatterns: ['@aws-sdk/'] },
+  { name: 'OpenAI', envPrefixes: ['OPENAI_', 'VITE_OPENAI_'], importPatterns: ['openai'] },
+  { name: 'Anthropic', envPrefixes: ['ANTHROPIC_', 'VITE_ANTHROPIC_'], importPatterns: ['@anthropic-ai/sdk'] },
+  { name: 'Resend', envPrefixes: ['RESEND_', 'VITE_RESEND_'], importPatterns: ['resend'] },
+  { name: 'SendGrid', envPrefixes: ['SENDGRID_', 'VITE_SENDGRID_'], importPatterns: ['@sendgrid/mail'] },
+  { name: 'Twilio', envPrefixes: ['TWILIO_', 'VITE_TWILIO_'], importPatterns: ['twilio'] },
+  { name: 'Cloudinary', envPrefixes: ['CLOUDINARY_', 'VITE_CLOUDINARY_'], importPatterns: ['cloudinary'] },
+  { name: 'Sentry', envPrefixes: ['SENTRY_', 'NEXT_PUBLIC_SENTRY_', 'VITE_SENTRY_'], importPatterns: ['@sentry/nextjs', '@sentry/node'] },
+  { name: 'Redis', envPrefixes: ['REDIS_', 'VITE_REDIS_'], importPatterns: ['ioredis', 'redis', '@upstash/redis'] },
+  { name: 'Clerk', envPrefixes: ['CLERK_', 'NEXT_PUBLIC_CLERK_', 'VITE_CLERK_'], importPatterns: ['@clerk/nextjs'] },
   { name: 'NextAuth', envPrefixes: ['NEXTAUTH_'], importPatterns: ['next-auth'] },
   { name: 'Prisma', envPrefixes: [], importPatterns: ['@prisma/client'] },
   { name: 'Drizzle', envPrefixes: [], importPatterns: ['drizzle-orm'] },
-  { name: 'Vercel', envPrefixes: ['VERCEL_'], importPatterns: ['@vercel/'] },
+  { name: 'Vercel', envPrefixes: ['VERCEL_', 'VITE_VERCEL_'], importPatterns: ['@vercel/'] },
 ];
 
 interface ExternalsResult {
