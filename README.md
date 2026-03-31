@@ -234,6 +234,8 @@ Nodes are color-coded by type:
 
 Rendering strategies show as badges: SSR (red), SSG (green), ISR (amber), Edge (cyan), Static (grey), Client (pink).
 
+![Click to open detail panel](docs/images/shipmap-api-details.png)
+
 ## What it detects
 
 ### Rendering strategies (Next.js)
