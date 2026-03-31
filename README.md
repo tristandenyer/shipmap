@@ -2,7 +2,7 @@
 
 **Map it before you ship it. Course correct after deploy.**
 
-![Pages discovered by shipmap](docs/images/shipmap-pages.png)
+![Pages discovered by shipmap](docs/images/shipmap-all.png)
 
 Auto-discover routes, APIs, middleware, and external services in your web project, then generate an interactive HTML service map.
 
