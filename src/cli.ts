@@ -362,13 +362,14 @@ export function createCli(): Command {
           log(`\n  ✓ Report saved to ${options.output}\n`);
 
           if (options.open) {
-            const { exec } = await import('node:child_process');
+            const { execFile } = await import('node:child_process');
+            const { resolve } = await import('node:path');
             const cmd = process.platform === 'darwin'
               ? 'open'
               : process.platform === 'win32'
                 ? 'start'
                 : 'xdg-open';
-            exec(`${cmd} ${options.output}`);
+            execFile(cmd, [resolve(options.output)]);
           }
         }
       } catch (err) {
