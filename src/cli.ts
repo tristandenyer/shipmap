@@ -7,8 +7,10 @@ import { loadConfig } from './config.js';
 import { detectAuth } from './probe/auth.js';
 import { probeRoutes } from './probe/http.js';
 import { probeExternals } from './probe/external.js';
-import { writeProbeCache, writeLastReport } from './probe/cache.js';
-import type { RouteNode, ExternalNode } from './types.js';
+import { writeProbeCache, writeLastReport, readLastReport, readReportFromPath, archiveReport } from './probe/cache.js';
+import { compareTopology } from './diff/compare.js';
+import { generateMarkdown } from './diff/markdown.js';
+import type { TopologyReport, RouteNode, ExternalNode } from './types.js';
 
 export function createCli(): Command {
   const program = new Command();
@@ -16,7 +18,7 @@ export function createCli(): Command {
   program
     .name('shipmap')
     .description('Map it before you ship it. Generate an interactive topology map of your project.')
-    .version('0.2.0');
+    .version('0.3.0');
 
   program
     .argument('[directory]', 'Project directory to scan', '.')
@@ -30,6 +32,9 @@ export function createCli(): Command {
     .option('--probe-timeout <ms>', 'Request timeout per route in ms', '10000')
     .option('--probe-concurrency <n>', 'Max concurrent probe requests', '5')
     .option('--serve [port]', 'Start live server with auto-refresh')
+    .option('--diff', 'Compare to previous run and highlight changes')
+    .option('--diff-from <path>', 'Compare to a specific previous report JSON')
+    .option('--markdown', 'Output topology as Markdown table')
     .action(async (directory: string, options: {
       output: string;
       json?: boolean;
@@ -41,11 +46,14 @@ export function createCli(): Command {
       probeTimeout: string;
       probeConcurrency: string;
       serve?: string | boolean;
+      diff?: boolean;
+      diffFrom?: string;
+      markdown?: boolean;
     }) => {
       const projectDir = resolve(directory);
       const log = options.quiet ? (() => {}) : console.log;
 
-      log('\n  ⚓ shipmap v0.2.0 — Map it before you ship it\n');
+      log('\n  ⚓ shipmap v0.3.0 — Map it before you ship it\n');
 
       try {
         // Load config file
@@ -236,6 +244,34 @@ export function createCli(): Command {
           }
         }
 
+        // Diff mode
+        let diffResult = undefined as ReturnType<typeof compareTopology> | undefined;
+        if (options.diff || options.diffFrom) {
+          const prevRaw = options.diffFrom
+            ? await readReportFromPath(options.diffFrom)
+            : await readLastReport(projectDir);
+
+          if (!prevRaw) {
+            if (options.diffFrom) {
+              log(`\n  ⚠ Could not read report at ${options.diffFrom}`);
+            } else {
+              log('\n  ⚠ No previous report found. Run shipmap once first, then use --diff on subsequent runs.');
+            }
+          } else {
+            diffResult = compareTopology(report, prevRaw as TopologyReport);
+            log(`\n  Diff: +${diffResult.summary.addedCount} new · -${diffResult.summary.removedCount} removed · ${diffResult.summary.changedCount} changed · ${diffResult.summary.unchangedCount} unchanged`);
+          }
+        }
+
+        // Markdown output
+        if (options.markdown) {
+          const md = generateMarkdown(report);
+          process.stdout.write(md);
+          await writeLastReport(projectDir, report);
+          await archiveReport(projectDir, report);
+          return;
+        }
+
         // Watch/serve mode
         if (options.serve !== undefined && options.serve !== false) {
           const port = typeof options.serve === 'string' ? parseInt(options.serve, 10) : 3001;
@@ -255,8 +291,9 @@ export function createCli(): Command {
           return; // Server keeps running
         }
 
-        // Save last report
+        // Save last report + archive
         await writeLastReport(projectDir, report);
+        await archiveReport(projectDir, report);
 
         // Output
         if (options.json) {
@@ -266,7 +303,7 @@ export function createCli(): Command {
           await writeFile(outputPath, JSON.stringify(report, null, 2));
           log(`\n  ✓ JSON saved to ${outputPath}\n`);
         } else {
-          const html = generateReport(report);
+          const html = generateReport(report, diffResult);
           await writeFile(options.output, html);
           log(`\n  ✓ Report saved to ${options.output}\n`);
 

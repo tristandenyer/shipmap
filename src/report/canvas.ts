@@ -1,39 +1,127 @@
 export function getCanvasScript(): string {
   return `
 (function() {
-  const canvas = document.getElementById('canvas');
-  const container = document.getElementById('canvas-container');
-  const svg = document.getElementById('connectors-svg');
-  const panel = document.getElementById('detail-panel');
-  const panelTitle = document.getElementById('panel-title');
-  const panelContent = document.getElementById('panel-content');
-  const panelClose = document.getElementById('panel-close');
+  var canvas = document.getElementById('canvas');
+  var container = document.getElementById('canvas-container');
+  var svg = document.getElementById('connectors-svg');
+  var panel = document.getElementById('detail-panel');
+  var panelTitle = document.getElementById('panel-title');
+  var panelContent = document.getElementById('panel-content');
+  var panelClose = document.getElementById('panel-close');
+  var searchInput = document.getElementById('search-input');
+  var searchClear = document.getElementById('search-clear');
+  var searchCount = document.getElementById('search-count');
+  var toastContainer = document.getElementById('toast-container');
+  var shortcutOverlay = document.getElementById('shortcut-overlay');
+  var staleBanner = document.getElementById('stale-banner');
 
   // State
-  let scale = 1;
-  let offsetX = 40;
-  let offsetY = 40;
-  let isDraggingCanvas = false;
-  let isDraggingNode = false;
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let dragNode = null;
-  let dragNodeStartX = 0;
-  let dragNodeStartY = 0;
-  let selectedNodeId = null;
+  var scale = 1;
+  var offsetX = 40;
+  var offsetY = 40;
+  var isDraggingCanvas = false;
+  var isDraggingNode = false;
+  var dragStartX = 0;
+  var dragStartY = 0;
+  var dragNode = null;
+  var dragNodeStartX = 0;
+  var dragNodeStartY = 0;
+  var selectedNodeId = null;
+  var focusedNodeId = null;
+  var searchQuery = '';
+  var activeFilterType = 'all';
+  var activeFilterStatus = 'all';
+  var activeFilterRendering = 'all';
 
   // Node positions (mutable)
-  const nodePositions = new Map();
-  // Collapsed groups
-  const collapsedGroups = new Set();
+  var nodePositions = new Map();
+  var collapsedGroups = new Set();
+
+  // Build diff lookup maps
+  var diffAddedPaths = new Set();
+  var diffRemovedPaths = new Set();
+  var diffChangedPaths = new Map();
+  var diffAddedConnKeys = new Set();
+  var diffRemovedConnKeys = new Set();
+
+  if (DIFF) {
+    for (var i = 0; i < DIFF.added.length; i++) {
+      var n = DIFF.added[i];
+      diffAddedPaths.add(n.path || n.name || n.filePath);
+    }
+    for (var i = 0; i < DIFF.removed.length; i++) {
+      var n = DIFF.removed[i];
+      diffRemovedPaths.add(n.path || n.name || n.filePath);
+    }
+    for (var i = 0; i < DIFF.changed.length; i++) {
+      var c = DIFF.changed[i];
+      var key = c.node.path || c.node.name || c.node.filePath;
+      diffChangedPaths.set(key, c.changes);
+    }
+    if (DIFF.addedConnectors) {
+      for (var i = 0; i < DIFF.addedConnectors.length; i++) {
+        diffAddedConnKeys.add(DIFF.addedConnectors[i].source + '→' + DIFF.addedConnectors[i].target);
+      }
+    }
+    if (DIFF.removedConnectors) {
+      for (var i = 0; i < DIFF.removedConnectors.length; i++) {
+        diffRemovedConnKeys.add(DIFF.removedConnectors[i].source + '→' + DIFF.removedConnectors[i].target);
+      }
+    }
+  }
+
+  // Visible (filtered) node list
+  function getVisibleNodes() {
+    var nodes = [];
+    for (var i = 0; i < REPORT.nodes.length; i++) {
+      var node = REPORT.nodes[i];
+      if (isNodeVisible(node)) nodes.push(node);
+    }
+    // Include ghost nodes from diff
+    if (DIFF) {
+      for (var i = 0; i < DIFF.removed.length; i++) {
+        nodes.push(DIFF.removed[i]);
+      }
+    }
+    return nodes;
+  }
+
+  function getNodeKey(node) {
+    return node.path || node.name || node.filePath || '';
+  }
+
+  function isNodeVisible(node) {
+    // Type filter
+    if (activeFilterType !== 'all' && node.type !== activeFilterType) return false;
+    // Status filter (probe mode)
+    if (activeFilterStatus !== 'all') {
+      var probe = node.probe;
+      if (!probe) return false;
+      if (probe.status !== activeFilterStatus) return false;
+    }
+    // Rendering filter
+    if (activeFilterRendering !== 'all') {
+      if (!node.rendering || node.rendering !== activeFilterRendering) return false;
+    }
+    return true;
+  }
+
+  function matchesSearch(node) {
+    if (!searchQuery) return true;
+    var q = searchQuery.toLowerCase();
+    var fields = [node.path, node.label, node.filePath, node.name].filter(Boolean);
+    for (var i = 0; i < fields.length; i++) {
+      if (fields[i].toLowerCase().indexOf(q) !== -1) return true;
+    }
+    return false;
+  }
 
   // ─── Layout ───
   function layoutNodes() {
-    const nodes = REPORT.nodes;
-    const groups = REPORT.groups;
+    var nodes = REPORT.nodes;
+    var groups = REPORT.groups;
 
-    // Sort groups: middleware first, then root, then alphabetical, externals last
-    const groupOrder = Object.keys(groups).sort((a, b) => {
+    var groupOrder = Object.keys(groups).sort(function(a, b) {
       if (a === 'middleware') return -1;
       if (b === 'middleware') return 1;
       if (a === 'external') return 1;
@@ -43,26 +131,26 @@ export function getCanvasScript(): string {
       return a.localeCompare(b);
     });
 
-    const NODE_W = 200;
-    const NODE_H = 60;
-    const GAP_X = 40;
-    const GAP_Y = 20;
-    const GROUP_PAD = 30;
-    const GROUP_GAP = 60;
+    var NODE_W = 200;
+    var NODE_H = 60;
+    var GAP_X = 40;
+    var GAP_Y = 20;
+    var GROUP_PAD = 30;
+    var GROUP_GAP = 60;
 
-    let cursorX = 40;
+    var cursorX = 40;
 
-    for (const groupName of groupOrder) {
-      const nodeIds = groups[groupName];
+    for (var gi = 0; gi < groupOrder.length; gi++) {
+      var groupName = groupOrder[gi];
+      var nodeIds = groups[groupName];
       if (!nodeIds || nodeIds.length === 0) continue;
 
-      const groupNodes = nodeIds.map(id => nodes.find(n => n.id === id)).filter(Boolean);
-      const cols = Math.ceil(Math.sqrt(groupNodes.length));
-      const rows = Math.ceil(groupNodes.length / cols);
+      var groupNodes = nodeIds.map(function(id) { return nodes.find(function(n) { return n.id === id; }); }).filter(Boolean);
+      var cols = Math.ceil(Math.sqrt(groupNodes.length));
 
-      groupNodes.forEach((node, i) => {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
+      groupNodes.forEach(function(node, i) {
+        var col = i % cols;
+        var row = Math.floor(i / cols);
         nodePositions.set(node.id, {
           x: cursorX + GROUP_PAD + col * (NODE_W + GAP_X),
           y: GROUP_PAD + row * (NODE_H + GAP_Y),
@@ -73,6 +161,16 @@ export function getCanvasScript(): string {
 
       cursorX += GROUP_PAD * 2 + cols * (NODE_W + GAP_X) + GROUP_GAP;
     }
+
+    // Position ghost/removed nodes from diff
+    if (DIFF) {
+      for (var i = 0; i < DIFF.removed.length; i++) {
+        var rn = DIFF.removed[i];
+        if (!nodePositions.has(rn.id)) {
+          nodePositions.set(rn.id, { x: cursorX, y: GROUP_PAD + i * (NODE_H + GAP_Y), w: NODE_W, h: NODE_H });
+        }
+      }
+    }
   }
 
   // ─── Render ───
@@ -80,13 +178,14 @@ export function getCanvasScript(): string {
     canvas.innerHTML = '';
 
     // Draw group boxes
-    const groups = REPORT.groups;
-    for (const [groupName, nodeIds] of Object.entries(groups)) {
+    var groups = REPORT.groups;
+    for (var groupName in groups) {
+      var nodeIds = groups[groupName];
       if (!nodeIds.length) continue;
-      const isCollapsed = collapsedGroups.has(groupName);
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      for (const id of nodeIds) {
-        const pos = nodePositions.get(id);
+      var isCollapsed = collapsedGroups.has(groupName);
+      var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (var ni = 0; ni < nodeIds.length; ni++) {
+        var pos = nodePositions.get(nodeIds[ni]);
         if (!pos) continue;
         minX = Math.min(minX, pos.x);
         minY = Math.min(minY, pos.y);
@@ -95,8 +194,8 @@ export function getCanvasScript(): string {
       }
       if (minX === Infinity) continue;
 
-      const pad = 16;
-      const box = document.createElement('div');
+      var pad = 16;
+      var box = document.createElement('div');
       box.className = 'group-box' + (isCollapsed ? ' collapsed' : '');
       box.style.left = (minX - pad) + 'px';
       box.style.top = (minY - pad) + 'px';
@@ -104,57 +203,93 @@ export function getCanvasScript(): string {
       box.style.height = isCollapsed ? '32px' : (maxY - minY + pad * 2) + 'px';
       canvas.appendChild(box);
 
-      const label = document.createElement('div');
+      // Count visible in group
+      var visibleInGroup = 0;
+      for (var ni = 0; ni < nodeIds.length; ni++) {
+        var gn = REPORT.nodes.find(function(n) { return n.id === nodeIds[ni]; });
+        if (gn && isNodeVisible(gn) && matchesSearch(gn)) visibleInGroup++;
+      }
+
+      var label = document.createElement('div');
       label.className = 'group-label' + (isCollapsed ? ' collapsed' : '');
       label.dataset.group = groupName;
-      label.innerHTML = '<span class="collapse-icon">▼</span> ' +
+      label.innerHTML = '<span class="collapse-icon">&#9660;</span> ' +
         escapeHtml(groupName === 'root' ? '/' : '/' + groupName) +
-        ' <span class="group-count">' + nodeIds.length + '</span>';
+        ' <span class="group-count">' + (searchQuery || activeFilterType !== 'all' || activeFilterStatus !== 'all' || activeFilterRendering !== 'all' ? visibleInGroup + ' of ' + nodeIds.length : nodeIds.length) + '</span>';
       label.style.left = (minX - pad) + 'px';
       label.style.top = (minY - pad - 22) + 'px';
-      label.addEventListener('click', function() { toggleGroup(groupName); });
+      label.addEventListener('click', function(gn) { return function() { toggleGroup(gn); }; }(groupName));
       canvas.appendChild(label);
     }
 
+    // Collect all nodes to render (including ghost/removed)
+    var allNodes = REPORT.nodes.slice();
+    if (DIFF) {
+      for (var i = 0; i < DIFF.removed.length; i++) {
+        allNodes.push(DIFF.removed[i]);
+      }
+    }
+
     // Draw nodes
-    for (const node of REPORT.nodes) {
-      const pos = nodePositions.get(node.id);
+    for (var ni = 0; ni < allNodes.length; ni++) {
+      var node = allNodes[ni];
+      var pos = nodePositions.get(node.id);
       if (!pos) continue;
 
-      // Skip nodes in collapsed groups
       if (isNodeInCollapsedGroup(node.id)) continue;
 
-      const el = document.createElement('div');
-      el.className = 'node' + (node.id === selectedNodeId ? ' selected' : '');
+      var nodeKey = getNodeKey(node);
+      var isGhost = diffRemovedPaths.has(nodeKey);
+      var isAdded = diffAddedPaths.has(nodeKey);
+      var isChanged = diffChangedPaths.has(nodeKey);
+      var isVisible = isGhost || isNodeVisible(node);
+      var matchSearch = matchesSearch(node);
+
+      var el = document.createElement('div');
+      var classes = 'node';
+      if (node.id === selectedNodeId) classes += ' selected';
+      if (node.id === focusedNodeId) classes += ' focused';
+      if (!isVisible || !matchSearch) classes += ' filtered-out';
+      if (isGhost) classes += ' diff-removed';
+      if (isAdded) classes += ' diff-added';
+      if (isChanged) classes += ' diff-changed';
+
+      // Probe status class
+      if (!isGhost) {
+        if (node.probe && node.probe.status && node.probe.status !== 'not-probed') {
+          classes += ' probe-' + node.probe.status;
+        } else if (node.type === 'external' && node.probe) {
+          classes += node.probe.reachable ? ' probe-ok' : ' probe-error';
+        }
+      }
+
+      el.className = classes;
       el.dataset.id = node.id;
       el.style.left = pos.x + 'px';
       el.style.top = pos.y + 'px';
       el.style.width = pos.w + 'px';
 
-      // Probe status class
-      var probeClass = '';
+      // Status dot
       var statusDot = '';
-      if (node.probe && node.probe.status && node.probe.status !== 'not-probed') {
-        probeClass = ' probe-' + node.probe.status;
-        statusDot = '<span class="node-status ' + node.probe.status + '"></span>';
-      } else if (node.type === 'external' && node.probe) {
-        statusDot = '<span class="node-status ' + (node.probe.reachable ? 'ok' : 'error') + '"></span>';
-        probeClass = node.probe.reachable ? ' probe-ok' : ' probe-error';
-      } else if (node.type === 'external') {
-        statusDot = '<span class="node-status external"></span>';
-      } else if (REPORT.meta.mode === 'static') {
-        statusDot = '<span class="node-status not-probed"></span>';
+      if (!isGhost) {
+        if (node.probe && node.probe.status && node.probe.status !== 'not-probed') {
+          statusDot = '<span class="node-status ' + node.probe.status + '"></span>';
+        } else if (node.type === 'external' && node.probe) {
+          statusDot = '<span class="node-status ' + (node.probe.reachable ? 'ok' : 'error') + '"></span>';
+        } else if (node.type === 'external') {
+          statusDot = '<span class="node-status external"></span>';
+        } else if (REPORT.meta.mode === 'static') {
+          statusDot = '<span class="node-status not-probed"></span>';
+        }
       }
 
-      el.className = 'node' + (node.id === selectedNodeId ? ' selected' : '') + probeClass;
-
-      let meta = '';
+      var meta = '';
       if (node.type === 'page' && node.rendering) {
-        const cls = node.rendering.toLowerCase();
+        var cls = node.rendering.toLowerCase();
         meta = '<span class="rendering-badge ' + cls + '">' + node.rendering + '</span>';
       }
       if (node.type === 'api' && node.methods) {
-        meta = node.methods.map(m => '<span class="method-badge">' + m + '</span>').join(' ');
+        meta = node.methods.map(function(m) { return '<span class="method-badge">' + m + '</span>'; }).join(' ');
       }
       if (node.type === 'middleware') {
         meta = '<span class="rendering-badge edge">edge</span>';
@@ -170,7 +305,6 @@ export function getCanvasScript(): string {
         }
       }
 
-      // Probe data badges
       var probeMeta = '';
       if (node.probe && node.probe.httpStatus) {
         probeMeta = '<span class="probe-badge ' + node.probe.status + '">' + node.probe.httpStatus + '</span>';
@@ -179,7 +313,26 @@ export function getCanvasScript(): string {
         }
       }
 
+      // Diff badge
+      var diffBadge = '';
+      if (isAdded) diffBadge = '<span class="diff-badge new">NEW</span>';
+      if (isChanged) diffBadge = '<span class="diff-badge changed">&#9650;</span>';
+
+      // Node action buttons (copy, open in browser)
+      var actions = '';
+      if (!isGhost) {
+        actions = '<div class="node-actions">';
+        if (node.path) {
+          actions += '<button class="node-action-btn" data-action="copy" data-path="' + escapeHtml(node.path) + '" title="Copy path">&#128203;</button>';
+        }
+        if (REPORT.meta.mode === 'probe' && (node.type === 'page' || node.type === 'api') && node.path) {
+          actions += '<button class="node-action-btn" data-action="open" data-path="' + escapeHtml(node.path) + '" title="Open in browser">&#8599;</button>';
+        }
+        actions += '</div>';
+      }
+
       el.innerHTML =
+        diffBadge + actions +
         '<div class="node-header">' +
           statusDot +
           '<span class="node-type ' + node.type + '">' + node.type + '</span>' +
@@ -188,67 +341,112 @@ export function getCanvasScript(): string {
         (meta ? '<div class="node-meta">' + meta + '</div>' : '') +
         (probeMeta ? '<div class="node-meta">' + probeMeta + '</div>' : '');
 
-      // Measure height after render
-      el.addEventListener('mousedown', onNodeMouseDown);
-      el.addEventListener('click', onNodeClick);
-      canvas.appendChild(el);
+      if (!isGhost) {
+        el.addEventListener('mousedown', onNodeMouseDown);
+        el.addEventListener('click', onNodeClick);
+      }
 
-      // Update stored height
+      // Action button events
+      var actionBtns = el.querySelectorAll('.node-action-btn');
+      for (var bi = 0; bi < actionBtns.length; bi++) {
+        actionBtns[bi].addEventListener('click', onActionClick);
+      }
+
+      canvas.appendChild(el);
       pos.h = Math.max(pos.h, el.offsetHeight);
     }
 
     drawConnectors();
   }
 
+  // ─── Action button clicks ───
+  function onActionClick(e) {
+    e.stopPropagation();
+    var action = e.currentTarget.dataset.action;
+    var path = e.currentTarget.dataset.path;
+    if (action === 'copy' && path) {
+      copyToClipboard(path);
+      showToast('Copied: ' + path);
+    }
+    if (action === 'open' && path) {
+      var baseUrl = REPORT.meta.probeUrl || 'http://localhost:3000';
+      window.open(baseUrl + path, '_blank');
+    }
+  }
+
   // ─── Connectors ───
   function drawConnectors() {
     svg.innerHTML = '';
-    const svgNS = 'http://www.w3.org/2000/svg';
+    var svgNS = 'http://www.w3.org/2000/svg';
 
-    for (const conn of REPORT.connectors) {
-      const src = nodePositions.get(conn.source);
-      const tgt = nodePositions.get(conn.target);
-      if (!src || !tgt) continue;
-
-      // Hide connectors for collapsed group nodes
-      if (isNodeInCollapsedGroup(conn.source) || isNodeInCollapsedGroup(conn.target)) continue;
-
-      const x1 = (src.x + src.w) * scale + offsetX;
-      const y1 = (src.y + src.h / 2) * scale + offsetY;
-      const x2 = tgt.x * scale + offsetX;
-      const y2 = (tgt.y + tgt.h / 2) * scale + offsetY;
-
-      const dx = Math.abs(x2 - x1) * 0.5;
-      const d = 'M ' + x1 + ' ' + y1 + ' C ' + (x1 + dx) + ' ' + y1 + ' ' + (x2 - dx) + ' ' + y2 + ' ' + x2 + ' ' + y2;
-
-      // Create a group for the path + invisible hover target + tooltip
-      const g = document.createElementNS(svgNS, 'g');
-
-      // Invisible wider path for easier hover
-      const hitArea = document.createElementNS(svgNS, 'path');
-      hitArea.setAttribute('d', d);
-      hitArea.setAttribute('fill', 'none');
-      hitArea.setAttribute('stroke', 'transparent');
-      hitArea.setAttribute('stroke-width', '12');
-      hitArea.setAttribute('style', 'pointer-events: stroke;');
-      g.appendChild(hitArea);
-
-      const path = document.createElementNS(svgNS, 'path');
-      path.setAttribute('d', d);
-      path.setAttribute('class', 'connector-path ' + (conn.color || 'grey') + (conn.style === 'dashed' ? ' dashed' : ''));
-      g.appendChild(path);
-
-      // Tooltip showing confidence
-      var confidenceLabel = conn.confidence === 'probed' ? 'Confirmed via probe' :
-                            conn.confidence === 'static' ? 'Detected via static analysis' :
-                            'Inferred relationship';
-      if (conn.label) confidenceLabel += ' — ' + conn.label;
-      var titleEl = document.createElementNS(svgNS, 'title');
-      titleEl.textContent = confidenceLabel;
-      g.appendChild(titleEl);
-
-      svg.appendChild(g);
+    // Current connectors
+    for (var ci = 0; ci < REPORT.connectors.length; ci++) {
+      var conn = REPORT.connectors[ci];
+      drawSingleConnector(conn, svgNS, false);
     }
+
+    // Removed connectors from diff (ghost connectors)
+    if (DIFF && DIFF.removedConnectors) {
+      for (var ci = 0; ci < DIFF.removedConnectors.length; ci++) {
+        drawSingleConnector(DIFF.removedConnectors[ci], svgNS, true);
+      }
+    }
+  }
+
+  function drawSingleConnector(conn, svgNS, isRemoved) {
+    var src = nodePositions.get(conn.source);
+    var tgt = nodePositions.get(conn.target);
+    if (!src || !tgt) return;
+
+    if (isNodeInCollapsedGroup(conn.source) || isNodeInCollapsedGroup(conn.target)) return;
+
+    var x1 = (src.x + src.w) * scale + offsetX;
+    var y1 = (src.y + src.h / 2) * scale + offsetY;
+    var x2 = tgt.x * scale + offsetX;
+    var y2 = (tgt.y + tgt.h / 2) * scale + offsetY;
+
+    var dx = Math.abs(x2 - x1) * 0.5;
+    var d = 'M ' + x1 + ' ' + y1 + ' C ' + (x1 + dx) + ' ' + y1 + ' ' + (x2 - dx) + ' ' + y2 + ' ' + x2 + ' ' + y2;
+
+    var connKey = conn.source + '\\u2192' + conn.target;
+    var isAddedConn = diffAddedConnKeys.has(connKey);
+    var isRemovedConn = isRemoved || diffRemovedConnKeys.has(connKey);
+
+    // Check if connected nodes are filtered
+    var srcNode = REPORT.nodes.find(function(n) { return n.id === conn.source; });
+    var tgtNode = REPORT.nodes.find(function(n) { return n.id === conn.target; });
+    var srcVisible = srcNode && isNodeVisible(srcNode) && matchesSearch(srcNode);
+    var tgtVisible = tgtNode && isNodeVisible(tgtNode) && matchesSearch(tgtNode);
+
+    var g = document.createElementNS(svgNS, 'g');
+
+    var hitArea = document.createElementNS(svgNS, 'path');
+    hitArea.setAttribute('d', d);
+    hitArea.setAttribute('fill', 'none');
+    hitArea.setAttribute('stroke', 'transparent');
+    hitArea.setAttribute('stroke-width', '12');
+    hitArea.setAttribute('style', 'pointer-events: stroke;');
+    g.appendChild(hitArea);
+
+    var pathClasses = 'connector-path ' + (conn.color || 'grey') + (conn.style === 'dashed' ? ' dashed' : '');
+    if (isAddedConn) pathClasses += ' diff-added';
+    if (isRemovedConn) pathClasses += ' diff-removed';
+    if (!srcVisible || !tgtVisible) pathClasses += ' filtered-out';
+
+    var path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('class', pathClasses);
+    g.appendChild(path);
+
+    var confidenceLabel = conn.confidence === 'probed' ? 'Confirmed via probe' :
+                          conn.confidence === 'static' ? 'Detected via static analysis' :
+                          'Inferred relationship';
+    if (conn.label) confidenceLabel += ' \\u2014 ' + conn.label;
+    var titleEl = document.createElementNS(svgNS, 'title');
+    titleEl.textContent = confidenceLabel;
+    g.appendChild(titleEl);
+
+    svg.appendChild(g);
   }
 
   // ─── Transform ───
@@ -273,7 +471,7 @@ export function getCanvasScript(): string {
       applyTransform();
     }
     if (isDraggingNode && dragNode) {
-      const pos = nodePositions.get(dragNode.dataset.id);
+      var pos = nodePositions.get(dragNode.dataset.id);
       if (pos) {
         pos.x = dragNodeStartX + (e.clientX - dragStartX) / scale;
         pos.y = dragNodeStartY + (e.clientY - dragStartY) / scale;
@@ -293,11 +491,11 @@ export function getCanvasScript(): string {
 
   container.addEventListener('wheel', function(e) {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    const newScale = Math.min(3, Math.max(0.1, scale * delta));
-    const rect = container.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    var delta = e.deltaY > 0 ? 0.9 : 1.1;
+    var newScale = Math.min(3, Math.max(0.1, scale * delta));
+    var rect = container.getBoundingClientRect();
+    var mx = e.clientX - rect.left;
+    var my = e.clientY - rect.top;
     offsetX = mx - (mx - offsetX) * (newScale / scale);
     offsetY = my - (my - offsetY) * (newScale / scale);
     scale = newScale;
@@ -312,7 +510,7 @@ export function getCanvasScript(): string {
     dragNode = e.currentTarget;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
-    const pos = nodePositions.get(dragNode.dataset.id);
+    var pos = nodePositions.get(dragNode.dataset.id);
     if (pos) {
       dragNodeStartX = pos.x;
       dragNodeStartY = pos.y;
@@ -322,19 +520,31 @@ export function getCanvasScript(): string {
   // ─── Node Click / Detail Panel ───
   function onNodeClick(e) {
     if (isDraggingNode && (Math.abs(e.clientX - dragStartX) > 3 || Math.abs(e.clientY - dragStartY) > 3)) return;
-    const id = e.currentTarget.dataset.id;
+    var id = e.currentTarget.dataset.id;
+    selectAndShowNode(id);
+  }
+
+  function selectAndShowNode(id) {
     if (selectedNodeId === id) {
       selectedNodeId = null;
+      focusedNodeId = null;
       panel.classList.add('hidden');
       renderNodes();
       return;
     }
     selectedNodeId = id;
-    const node = REPORT.nodes.find(n => n.id === id);
-    if (!node) return;
+    focusedNodeId = id;
+    var node = REPORT.nodes.find(function(n) { return n.id === id; });
+    if (!node) {
+      // Check ghost nodes
+      if (DIFF) {
+        node = DIFF.removed.find(function(n) { return n.id === id; });
+      }
+      if (!node) return;
+    }
 
     panelTitle.textContent = node.label;
-    let html = '';
+    var html = '';
 
     html += field('Type', node.type);
     if (node.filePath) html += field('File', node.filePath);
@@ -366,7 +576,6 @@ export function getCanvasScript(): string {
       if (node.probe.probedAt) {
         html += field('Last Probed', new Date(node.probe.probedAt).toLocaleString());
       }
-      // Per-method results for API routes
       if (node.probe.methodResults) {
         html += '<div class="field"><div class="field-label">Method Results</div>';
         for (var method in node.probe.methodResults) {
@@ -383,22 +592,35 @@ export function getCanvasScript(): string {
       }
     }
 
+    // Diff changes
+    var nodeKey = getNodeKey(node);
+    if (diffChangedPaths.has(nodeKey)) {
+      var changes = diffChangedPaths.get(nodeKey);
+      html += '<div class="diff-changes"><div class="diff-changes-title">Changes since last run</div>';
+      for (var ci = 0; ci < changes.length; ci++) {
+        html += '<div class="diff-change-item">' + escapeHtml(changes[ci]) + '</div>';
+      }
+      html += '</div>';
+    }
+
     // Show connections
-    const outgoing = REPORT.connectors.filter(c => c.source === id);
-    const incoming = REPORT.connectors.filter(c => c.target === id);
+    var outgoing = REPORT.connectors.filter(function(c) { return c.source === id; });
+    var incoming = REPORT.connectors.filter(function(c) { return c.target === id; });
     if (outgoing.length > 0) {
       html += '<div class="field"><div class="field-label">Connects To</div><ul class="connector-list">';
-      for (const c of outgoing) {
-        const target = REPORT.nodes.find(n => n.id === c.target);
-        html += '<li>→ ' + escapeHtml(target ? target.label : c.target) + (c.label ? ' (' + escapeHtml(c.label) + ')' : '') + '</li>';
+      for (var oi = 0; oi < outgoing.length; oi++) {
+        var c = outgoing[oi];
+        var target = REPORT.nodes.find(function(n) { return n.id === c.target; });
+        html += '<li>\\u2192 ' + escapeHtml(target ? target.label : c.target) + (c.label ? ' (' + escapeHtml(c.label) + ')' : '') + '</li>';
       }
       html += '</ul></div>';
     }
     if (incoming.length > 0) {
       html += '<div class="field"><div class="field-label">Connected From</div><ul class="connector-list">';
-      for (const c of incoming) {
-        const source = REPORT.nodes.find(n => n.id === c.source);
-        html += '<li>← ' + escapeHtml(source ? source.label : c.source) + (c.label ? ' (' + escapeHtml(c.label) + ')' : '') + '</li>';
+      for (var ii = 0; ii < incoming.length; ii++) {
+        var c = incoming[ii];
+        var source = REPORT.nodes.find(function(n) { return n.id === c.source; });
+        html += '<li>\\u2190 ' + escapeHtml(source ? source.label : c.source) + (c.label ? ' (' + escapeHtml(c.label) + ')' : '') + '</li>';
       }
       html += '</ul></div>';
     }
@@ -414,6 +636,90 @@ export function getCanvasScript(): string {
     renderNodes();
   });
 
+  // ─── Search ───
+  searchInput.addEventListener('input', function() {
+    searchQuery = searchInput.value;
+    searchClear.className = 'search-clear' + (searchQuery ? ' visible' : '');
+    updateSearchCount();
+    renderNodes();
+  });
+
+  searchClear.addEventListener('click', function() {
+    searchInput.value = '';
+    searchQuery = '';
+    searchClear.className = 'search-clear';
+    searchCount.textContent = '';
+    renderNodes();
+  });
+
+  function updateSearchCount() {
+    if (!searchQuery) { searchCount.textContent = ''; return; }
+    var total = REPORT.nodes.length;
+    var matched = 0;
+    for (var i = 0; i < REPORT.nodes.length; i++) {
+      if (matchesSearch(REPORT.nodes[i]) && isNodeVisible(REPORT.nodes[i])) matched++;
+    }
+    searchCount.textContent = matched + ' of ' + total + ' routes';
+  }
+
+  // ─── Filters ───
+  var filterBtns = document.querySelectorAll('.filter-btn');
+  for (var fi = 0; fi < filterBtns.length; fi++) {
+    filterBtns[fi].addEventListener('click', onFilterClick);
+  }
+
+  function onFilterClick(e) {
+    var btn = e.currentTarget;
+    if (btn.dataset.filterType !== undefined) {
+      activeFilterType = btn.dataset.filterType;
+      updateFilterGroup('filterType');
+    } else if (btn.dataset.filterStatus !== undefined) {
+      activeFilterStatus = btn.dataset.filterStatus;
+      updateFilterGroup('filterStatus');
+    } else if (btn.dataset.filterRendering !== undefined) {
+      activeFilterRendering = btn.dataset.filterRendering;
+      updateFilterGroup('filterRendering');
+    }
+    updateSearchCount();
+    updateHashState();
+    renderNodes();
+  }
+
+  function updateFilterGroup(attr) {
+    var btns = document.querySelectorAll('[data-' + attr.replace(/([A-Z])/g, '-$1').toLowerCase() + ']');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.remove('active');
+      var val = btns[i].dataset[attr];
+      if (attr === 'filterType' && val === activeFilterType) btns[i].classList.add('active');
+      if (attr === 'filterStatus' && val === activeFilterStatus) btns[i].classList.add('active');
+      if (attr === 'filterRendering' && val === activeFilterRendering) btns[i].classList.add('active');
+    }
+  }
+
+  // ─── URL Hash State ───
+  function updateHashState() {
+    var parts = [];
+    if (activeFilterType !== 'all') parts.push('type:' + activeFilterType);
+    if (activeFilterStatus !== 'all') parts.push('status:' + activeFilterStatus);
+    if (activeFilterRendering !== 'all') parts.push('rendering:' + activeFilterRendering);
+    window.location.hash = parts.length > 0 ? 'filter=' + parts.join(',') : '';
+  }
+
+  function loadHashState() {
+    var hash = window.location.hash.replace('#', '');
+    if (!hash.startsWith('filter=')) return;
+    var filters = hash.replace('filter=', '').split(',');
+    for (var i = 0; i < filters.length; i++) {
+      var parts = filters[i].split(':');
+      if (parts[0] === 'type') activeFilterType = parts[1];
+      if (parts[0] === 'status') activeFilterStatus = parts[1];
+      if (parts[0] === 'rendering') activeFilterRendering = parts[1];
+    }
+    updateFilterGroup('filterType');
+    updateFilterGroup('filterStatus');
+    updateFilterGroup('filterRendering');
+  }
+
   // ─── Toolbar ───
   document.getElementById('btn-fit').addEventListener('click', fitToView);
   document.getElementById('btn-zoom-in').addEventListener('click', function() {
@@ -424,33 +730,364 @@ export function getCanvasScript(): string {
     scale = Math.max(0.1, scale * 0.8);
     applyTransform();
   });
+  document.getElementById('btn-shortcuts').addEventListener('click', function() {
+    toggleShortcutOverlay();
+  });
+  document.getElementById('btn-copy-md').addEventListener('click', function() {
+    copyMarkdownToClipboard();
+  });
 
-  // Keyboard
+  // ─── Keyboard Shortcuts ───
   window.addEventListener('keydown', function(e) {
-    if (e.key === 'f' || e.key === 'F') fitToView();
-    if (e.key === 'Escape') {
-      selectedNodeId = null;
-      panel.classList.add('hidden');
+    // Don't capture when typing in search
+    if (document.activeElement === searchInput) {
+      if (e.key === 'Escape') {
+        searchInput.value = '';
+        searchQuery = '';
+        searchClear.className = 'search-clear';
+        searchCount.textContent = '';
+        searchInput.blur();
+        renderNodes();
+      }
+      return;
+    }
+
+    // Shortcut overlay toggle
+    if (e.key === '?') {
+      e.preventDefault();
+      toggleShortcutOverlay();
+      return;
+    }
+
+    // Close overlay if open
+    if (!shortcutOverlay.classList.contains('hidden')) {
+      if (e.key === 'Escape') {
+        shortcutOverlay.classList.add('hidden');
+      }
+      return;
+    }
+
+    switch(e.key) {
+      case 'f':
+      case 'F':
+        fitToView();
+        break;
+      case 'Escape':
+        if (!panel.classList.contains('hidden')) {
+          selectedNodeId = null;
+          panel.classList.add('hidden');
+          renderNodes();
+        } else if (focusedNodeId) {
+          focusedNodeId = null;
+          renderNodes();
+        }
+        break;
+      case '/':
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        navigateNodes(-1);
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        navigateNodes(1);
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        navigateGroups(-1);
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        navigateGroups(1);
+        break;
+      case 'Enter':
+        if (focusedNodeId) {
+          selectAndShowNode(focusedNodeId);
+        }
+        break;
+      case 'c':
+      case 'C':
+        if (focusedNodeId) {
+          var fn = REPORT.nodes.find(function(n) { return n.id === focusedNodeId; });
+          if (fn && fn.path) {
+            copyToClipboard(fn.path);
+            showToast('Copied: ' + fn.path);
+          }
+        }
+        break;
+      case 'o':
+      case 'O':
+        if (focusedNodeId) {
+          if (REPORT.meta.mode !== 'probe') {
+            showToast('Open in browser requires --probe mode');
+          } else {
+            var on = REPORT.nodes.find(function(n) { return n.id === focusedNodeId; });
+            if (on && on.path) {
+              var baseUrl = REPORT.meta.probeUrl || 'http://localhost:3000';
+              window.open(baseUrl + on.path, '_blank');
+            }
+          }
+        }
+        break;
+      case 'g':
+      case 'G':
+        if (focusedNodeId) {
+          for (var gn in REPORT.groups) {
+            if (REPORT.groups[gn].indexOf(focusedNodeId) !== -1) {
+              toggleGroup(gn);
+              break;
+            }
+          }
+        }
+        break;
+      case '1':
+        setFilterType('all');
+        break;
+      case '2':
+        setFilterType('page');
+        break;
+      case '3':
+        setFilterType('api');
+        break;
+      case '4':
+        activeFilterStatus = 'error';
+        updateFilterGroup('filterStatus');
+        updateHashState();
+        renderNodes();
+        break;
+      case '+':
+      case '=':
+        scale = Math.min(3, scale * 1.1);
+        applyTransform();
+        break;
+      case '-':
+        scale = Math.max(0.1, scale * 0.9);
+        applyTransform();
+        break;
+    }
+  });
+
+  function setFilterType(type) {
+    activeFilterType = type;
+    if (type === 'all') {
+      activeFilterStatus = 'all';
+      activeFilterRendering = 'all';
+      updateFilterGroup('filterStatus');
+      updateFilterGroup('filterRendering');
+    }
+    updateFilterGroup('filterType');
+    updateHashState();
+    renderNodes();
+  }
+
+  // ─── Node Navigation ───
+  function navigateNodes(direction) {
+    var visible = getVisibleNodes().filter(function(n) { return matchesSearch(n) && !isNodeInCollapsedGroup(n.id); });
+    if (visible.length === 0) return;
+
+    if (!focusedNodeId) {
+      focusedNodeId = visible[0].id;
+    } else {
+      var idx = visible.findIndex(function(n) { return n.id === focusedNodeId; });
+      if (idx === -1) idx = 0;
+      else idx = (idx + direction + visible.length) % visible.length;
+      focusedNodeId = visible[idx].id;
+    }
+    scrollToNode(focusedNodeId);
+    renderNodes();
+  }
+
+  function navigateGroups(direction) {
+    var groupOrder = Object.keys(REPORT.groups);
+    if (groupOrder.length === 0) return;
+
+    var currentGroup = null;
+    if (focusedNodeId) {
+      for (var g in REPORT.groups) {
+        if (REPORT.groups[g].indexOf(focusedNodeId) !== -1) { currentGroup = g; break; }
+      }
+    }
+
+    var idx = currentGroup ? groupOrder.indexOf(currentGroup) : -1;
+    idx = (idx + direction + groupOrder.length) % groupOrder.length;
+    var nextGroup = groupOrder[idx];
+    var groupNodes = REPORT.groups[nextGroup];
+    if (groupNodes && groupNodes.length > 0) {
+      focusedNodeId = groupNodes[0];
+      scrollToNode(focusedNodeId);
       renderNodes();
     }
-    if (e.key === '+' || e.key === '=') { scale = Math.min(3, scale * 1.1); applyTransform(); }
-    if (e.key === '-') { scale = Math.max(0.1, scale * 0.9); applyTransform(); }
+  }
+
+  function scrollToNode(nodeId) {
+    var pos = nodePositions.get(nodeId);
+    if (!pos) return;
+    var rect = container.getBoundingClientRect();
+    var nodeScreenX = pos.x * scale + offsetX;
+    var nodeScreenY = pos.y * scale + offsetY;
+    if (nodeScreenX < 0 || nodeScreenX > rect.width || nodeScreenY < 0 || nodeScreenY > rect.height) {
+      offsetX = rect.width / 2 - pos.x * scale;
+      offsetY = rect.height / 2 - pos.y * scale;
+      applyTransform();
+    }
+  }
+
+  // ─── Shortcut Overlay ───
+  function toggleShortcutOverlay() {
+    shortcutOverlay.classList.toggle('hidden');
+  }
+  shortcutOverlay.addEventListener('click', function(e) {
+    if (e.target === shortcutOverlay) shortcutOverlay.classList.add('hidden');
   });
+
+  // ─── Toast System ───
+  function showToast(message) {
+    var toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    toastContainer.appendChild(toast);
+
+    // Max 3 visible
+    while (toastContainer.children.length > 3) {
+      toastContainer.removeChild(toastContainer.firstChild);
+    }
+
+    setTimeout(function() {
+      toast.classList.add('fade-out');
+      setTimeout(function() {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 300);
+    }, 2000);
+  }
+
+  // ─── Clipboard ───
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+  }
+
+  // ─── Copy Markdown ───
+  function copyMarkdownToClipboard() {
+    var lines = [];
+    lines.push('# shipmap \\u2014 ' + REPORT.meta.projectName);
+    lines.push('> Generated: ' + REPORT.meta.generatedAt + ' | Framework: ' + REPORT.meta.framework + (REPORT.meta.frameworkVersion ? ' ' + REPORT.meta.frameworkVersion : '') + ' | Mode: ' + (REPORT.meta.mode === 'probe' ? 'Probe' : 'Static'));
+    lines.push('');
+
+    var pages = REPORT.nodes.filter(function(n) { return n.type === 'page'; });
+    var apis = REPORT.nodes.filter(function(n) { return n.type === 'api'; });
+    var middleware = REPORT.nodes.filter(function(n) { return n.type === 'middleware'; });
+    var externals = REPORT.nodes.filter(function(n) { return n.type === 'external'; });
+
+    if (pages.length > 0) {
+      lines.push('## Pages (' + pages.length + ')');
+      if (REPORT.meta.mode === 'probe') {
+        lines.push('| Route | Rendering | Status | Response Time | Auth |');
+        lines.push('|-------|-----------|--------|---------------|------|');
+        for (var i = 0; i < pages.length; i++) {
+          var p = pages[i];
+          var status = p.probe && p.probe.httpStatus ? p.probe.httpStatus + (p.probe.httpStatus < 400 ? ' \\u2713' : ' \\u2717') : '\\u2014';
+          var time = p.probe && p.probe.responseTime !== undefined ? p.probe.responseTime + 'ms' : '\\u2014';
+          lines.push('| \\x60' + p.path + '\\x60 | ' + (p.rendering || '\\u2014') + ' | ' + status + ' | ' + time + ' | ' + (p.isProtected ? 'Protected' : 'Public') + ' |');
+        }
+      } else {
+        lines.push('| Route | Rendering | Auth |');
+        lines.push('|-------|-----------|------|');
+        for (var i = 0; i < pages.length; i++) {
+          var p = pages[i];
+          lines.push('| \\x60' + p.path + '\\x60 | ' + (p.rendering || '\\u2014') + ' | ' + (p.isProtected ? 'Protected' : 'Public') + ' |');
+        }
+      }
+      lines.push('');
+    }
+
+    if (apis.length > 0) {
+      lines.push('## API Routes (' + apis.length + ')');
+      lines.push('| Route | Methods | Auth |');
+      lines.push('|-------|---------|------|');
+      for (var i = 0; i < apis.length; i++) {
+        var a = apis[i];
+        lines.push('| \\x60' + a.path + '\\x60 | ' + (a.methods ? a.methods.join(', ') : '\\u2014') + ' | ' + (a.isProtected ? 'Protected' : 'Public') + ' |');
+      }
+      lines.push('');
+    }
+
+    if (middleware.length > 0) {
+      lines.push('## Middleware (' + middleware.length + ')');
+      lines.push('| File | Matches | Auth Provider | Runtime |');
+      lines.push('|------|---------|---------------|---------|');
+      for (var i = 0; i < middleware.length; i++) {
+        var mw = middleware[i];
+        lines.push('| \\x60' + mw.filePath + '\\x60 | ' + (mw.matcherPatterns && mw.matcherPatterns.length > 0 ? mw.matcherPatterns.join(', ') : 'all routes') + ' | ' + (mw.authProvider || '\\u2014') + ' | ' + mw.runtime + ' |');
+      }
+      lines.push('');
+    }
+
+    if (externals.length > 0) {
+      lines.push('## External Services (' + externals.length + ')');
+      lines.push('| Service | Detected From | Used By |');
+      lines.push('|---------|--------------|---------|');
+      for (var i = 0; i < externals.length; i++) {
+        var ext = externals[i];
+        lines.push('| ' + ext.name + ' | ' + ext.detectedFrom + ' | ' + ext.referencedBy.length + ' routes |');
+      }
+      lines.push('');
+    }
+
+    var md = lines.join('\\n');
+    copyToClipboard(md);
+    showToast('Copied topology as Markdown');
+  }
+
+  // ─── Stale Snapshot Warning ───
+  function checkStaleSnapshot() {
+    if (sessionStorage.getItem('shipmap-stale-dismissed')) return;
+    var generatedAt = new Date(REPORT.meta.generatedAt);
+    var now = new Date();
+    var hoursOld = (now - generatedAt) / (1000 * 60 * 60);
+
+    if (hoursOld > 4) {
+      var ageText;
+      if (hoursOld > 168) ageText = 'over a week old';
+      else if (hoursOld > 24) ageText = Math.floor(hoursOld / 24) + ' days old';
+      else ageText = Math.floor(hoursOld) + ' hours old';
+
+      staleBanner.innerHTML = '\\u23f0 This snapshot is ' + ageText + '. Re-run \\'npx shipmap\\' for fresh data. <button id="stale-dismiss">\\u00d7</button>';
+      staleBanner.classList.remove('hidden');
+
+      document.getElementById('stale-dismiss').addEventListener('click', function() {
+        staleBanner.classList.add('hidden');
+        sessionStorage.setItem('shipmap-stale-dismissed', '1');
+      });
+    }
+  }
 
   function fitToView() {
     if (nodePositions.size === 0) return;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const pos of nodePositions.values()) {
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (var pos of nodePositions.values()) {
       minX = Math.min(minX, pos.x);
       minY = Math.min(minY, pos.y);
       maxX = Math.max(maxX, pos.x + pos.w);
       maxY = Math.max(maxY, pos.y + pos.h);
     }
-    const pad = 60;
-    const cw = container.clientWidth;
-    const ch = container.clientHeight;
-    const contentW = maxX - minX + pad * 2;
-    const contentH = maxY - minY + pad * 2;
+    var pad = 60;
+    var cw = container.clientWidth;
+    var ch = container.clientHeight;
+    var contentW = maxX - minX + pad * 2;
+    var contentH = maxY - minY + pad * 2;
     scale = Math.min(1.5, Math.min(cw / contentW, ch / contentH));
     offsetX = (cw - contentW * scale) / 2 - minX * scale + pad * scale;
     offsetY = (ch - contentH * scale) / 2 - minY * scale + pad * scale;
@@ -468,8 +1105,8 @@ export function getCanvasScript(): string {
   }
 
   function isNodeInCollapsedGroup(nodeId) {
-    for (const [groupName, nodeIds] of Object.entries(REPORT.groups)) {
-      if (collapsedGroups.has(groupName) && nodeIds.indexOf(nodeId) !== -1) return true;
+    for (var groupName in REPORT.groups) {
+      if (collapsedGroups.has(groupName) && REPORT.groups[groupName].indexOf(nodeId) !== -1) return true;
     }
     return false;
   }
@@ -484,10 +1121,12 @@ export function getCanvasScript(): string {
   }
 
   // ─── Init ───
+  loadHashState();
   layoutNodes();
   renderNodes();
   applyTransform();
   setTimeout(fitToView, 100);
+  checkStaleSnapshot();
 })();
 `;
 }

@@ -1,6 +1,6 @@
 {
   "name": "shipmap",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Map it before you ship it. Auto-discover routes, APIs, middleware, and external services — generate an interactive HTML topology map.",
   "type": "module",
   "bin": {

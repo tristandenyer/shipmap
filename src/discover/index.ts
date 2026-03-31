@@ -68,7 +68,7 @@ export async function discover(projectDir: string): Promise<TopologyReport> {
   const report: TopologyReport = {
     meta: {
       tool: 'shipmap',
-      version: '0.2.0',
+      version: '0.3.0',
       generatedAt: new Date().toISOString(),
       framework: framework.type,
       frameworkVersion: framework.version,

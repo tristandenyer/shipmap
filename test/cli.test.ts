@@ -118,7 +118,7 @@ describe('CLI', () => {
       // commander throws on --version with exitOverride
     }
 
-    expect(versionText).toContain('0.2.0');
+    expect(versionText).toContain('0.3.0');
   });
 
   it('--verbose includes detailed discovery output', async () => {

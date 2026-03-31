@@ -5,3 +5,4 @@ dist/
 shipmap-report.html
 coverage/
 .DS_Store
+.env*
