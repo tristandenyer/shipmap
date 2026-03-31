@@ -87,14 +87,14 @@ html, body { height: 100%; overflow: hidden; font-family: 'SF Mono', 'Cascadia C
 .node {
   position: absolute; padding: 10px 14px; border-radius: 8px;
   background: var(--surface); border: 1px solid var(--border);
-  cursor: pointer; user-select: none; min-width: 140px;
+  cursor: pointer; user-select: none; min-width: 140px; overflow: hidden;
   transition: box-shadow 0.15s, border-color 0.15s, opacity 0.15s;
 }
 .node:hover { border-color: var(--accent); box-shadow: 0 0 12px rgba(108,140,255,0.2); }
 .node.selected { border-color: var(--accent); box-shadow: 0 0 20px rgba(108,140,255,0.3); }
 .node.focused { outline: 2px solid #06b6d4; outline-offset: 2px; }
 .node.filtered-out { opacity: 0.2; pointer-events: none; }
-.node-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.node-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; overflow: hidden; }
 .node-type {
   font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
   padding: 1px 5px; border-radius: 3px;
@@ -103,7 +103,7 @@ html, body { height: 100%; overflow: hidden; font-family: 'SF Mono', 'Cascadia C
 .node-type.api { background: var(--api); color: #000; }
 .node-type.middleware { background: var(--middleware); color: #000; }
 .node-type.external { background: var(--external); color: #fff; }
-.node-label { font-size: 13px; font-weight: 500; white-space: nowrap; }
+.node-label { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .node-meta { font-size: 10px; color: var(--text-muted); margin-top: 2px; display: flex; gap: 6px; flex-wrap: wrap; }
 .rendering-badge {
   font-size: 9px; padding: 1px 4px; border-radius: 2px; font-weight: 600;
@@ -261,10 +261,11 @@ html, body { height: 100%; overflow: hidden; font-family: 'SF Mono', 'Cascadia C
 
 /* Detail Panel */
 #detail-panel {
-  position: fixed; top: 48px; right: 0; bottom: 0; width: 320px; z-index: 50;
+  position: fixed; top: 48px; right: 0; bottom: 0; width: 320px; z-index: 101;
   background: var(--surface); border-left: 1px solid var(--border);
   overflow-y: auto; transition: transform 0.2s;
 }
+#detail-panel.with-filters { top: 84px; }
 #detail-panel.hidden { transform: translateX(100%); }
 .panel-header {
   display: flex; justify-content: space-between; align-items: center;

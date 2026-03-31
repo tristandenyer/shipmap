@@ -88,7 +88,7 @@ export function generateReport(report: TopologyReport, diff?: DiffResult): strin
   <div id="canvas"></div>
 </div>
 
-<div id="detail-panel" class="hidden">
+<div id="detail-panel" class="hidden with-filters">
   <div class="panel-header">
     <span id="panel-title"></span>
     <button id="panel-close">&#10005;</button>

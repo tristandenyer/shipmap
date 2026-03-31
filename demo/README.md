@@ -1,6 +1,6 @@
 # shipmap demo
 
-A sample Next.js app designed to exercise shipmap's discovery features. This is not a working application. It exists so you can run `shipmap` against it and see a realistic topology report.
+A sample Next.js app designed to exercise shipmap's discovery features. This is not a working application. It exists so you can run `shipmap` against it and see a realistic service map.
 
 ![Pages discovered by shipmap](../docs/images/shipmap-pages.png)
 

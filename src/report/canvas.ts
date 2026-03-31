@@ -131,7 +131,7 @@ export function getCanvasScript(): string {
       return a.localeCompare(b);
     });
 
-    var NODE_W = 200;
+    var NODE_W = 260;
     var NODE_H = 60;
     var GAP_X = 40;
     var GAP_Y = 20;

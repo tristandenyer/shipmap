@@ -4,7 +4,7 @@
 
 ![Pages discovered by shipmap](docs/images/shipmap-pages.png)
 
-Auto-discover routes, APIs, middleware, and external services in your web project, then generate an interactive HTML topology map.
+Auto-discover routes, APIs, middleware, and external services in your web project, then generate an interactive HTML service map.
 
 ```bash
 npm install --save-dev shipmap
@@ -59,7 +59,7 @@ npx shipmap
 
 ## Try it
 
-A sample Next.js project is included in the [`demo/`](demo/) folder (i GitHUb repo; not npm package). Run shipmap against it to see a full topology report without setting up your own project:
+A sample Next.js project is included in the [`demo/`](demo/) folder (i GitHUb repo; not npm package). Run shipmap against it to see a full service map without setting up your own project:
 
 ```bash
 node bin/shipmap.js demo --verbose
@@ -87,7 +87,7 @@ npm run shipmap
 npm run shipmap -- ./my-project
 
 # Custom output path
-npm run shipmap -- -o topology.html
+npm run shipmap -- -o service-map.html
 
 # JSON output instead of HTML
 npm run shipmap -- --json
@@ -122,7 +122,7 @@ npm run shipmap -- --probe --probe-url https://preview.example.com
 
 ### CI mode
 
-Use shipmap in continuous integration to catch topology regressions:
+Use shipmap in continuous integration to catch service map regressions:
 
 ```bash
 # Exit non-zero if errors found
@@ -153,26 +153,26 @@ shipmap scans source files directly, so it does not depend on a build step. Add 
 
 ```yaml
 # Static check (no running server needed)
-- name: Topology scan
+- name: Service map scan
   run: npx shipmap --ci --diff --json > shipmap-report.json
 
 # Optional: with probe against preview deployment
-# - name: Topology probe
+# - name: Service map probe
 #   run: npx shipmap --ci --probe --probe-url ${{ env.PREVIEW_URL }}
 
-- name: Upload topology report
+- name: Upload service map report
 if: always()
 uses: actions/upload-artifact@v4
 with:
     name: shipmap-report
     path: shipmap-report.html
 
-# Optional: Comment on PR with topology changes
-- name: Comment topology diff
+# Optional: Comment on PR with service map changes
+- name: Comment service map diff
 if: always()
 run: |
-    npx shipmap --diff --markdown > /tmp/topology-diff.md
-    gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/topology-diff.md
+    npx shipmap --diff --markdown > /tmp/service-map-diff.md
+    gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/service-map-diff.md
 ```
 
 ## Configuration (optional)
@@ -292,7 +292,7 @@ export default {
 
 ## Programmatic API
 
-The CLI is built on top of a fully exported TypeScript API. Every function the CLI uses is available to your own scripts, so you can build custom dashboards, enforce project-specific rules in CI, generate reports in any format, or integrate topology data into other tools.
+The CLI is built on top of a fully exported TypeScript API. Every function the CLI uses is available to your own scripts, so you can build custom dashboards, enforce project-specific rules in CI, generate reports in any format, or integrate service map data into other tools.
 
 ### `discover(directory, options?)`
 
@@ -341,7 +341,7 @@ const diff = compareTopology(current, previous);
 
 // HTML report with changes highlighted
 const html = generateReport(current, diff);
-await writeFile("topology.html", html);
+await writeFile("service-map.html", html);
 ```
 
 ### Diffing and change detection
@@ -428,7 +428,7 @@ if (!result.passed) {
 | `detectFramework(dir)`               | Returns `{ type, version }` for the detected framework |
 | `loadConfig(dir)`                    | Loads and validates `shipmap.config.js`                |
 | `compareTopology(current, previous)` | Diffs two reports, returns added/removed/changed nodes |
-| `generateMarkdown(report)`           | Renders topology as a Markdown table                   |
+| `generateMarkdown(report)`           | Renders service map as a Markdown table                |
 | `probeRoutes(nodes, options)`        | HTTP-probes route nodes against a running server       |
 | `probeExternals(nodes, options)`     | Checks reachability of external service hosts          |
 | `detectAuth(dir)`                    | Auto-detects auth provider and generates probe headers |

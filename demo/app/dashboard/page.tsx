@@ -1,7 +1,10 @@
 import { cookies } from 'next/headers';
+import * as Sentry from '@sentry/nextjs';
 
 export default async function DashboardPage() {
   const cookieStore = cookies();
+
+  Sentry.addBreadcrumb({ category: 'navigation', message: 'Dashboard loaded' });
 
   return (
     <main>
