@@ -1,14 +1,22 @@
 import { lookup } from 'node:dns/promises';
 import type { ExternalNode } from '../types.js';
+import { validateProbeUrl, type NetworkSafetyOptions } from './validate.js';
 
 export interface ExternalProbeOptions {
   timeout: number;
+  allowInternal?: boolean;
+  allowHttp?: boolean;
 }
 
 export async function probeExternals(
   nodes: ExternalNode[],
   options: ExternalProbeOptions,
 ): Promise<ExternalNode[]> {
+  const safetyOpts: NetworkSafetyOptions = {
+    allowInternal: options.allowInternal,
+    allowHttp: options.allowHttp,
+  };
+
   return Promise.all(nodes.map(async (node) => {
     if (!node.host) {
       return {
@@ -27,6 +35,20 @@ export async function probeExternals(
       hostname = url.hostname;
     } catch {
       // Use as-is if not parseable
+    }
+
+    // Validate resolved IP before making any requests
+    const targetUrl = `https://${hostname}`;
+    const check = await validateProbeUrl(targetUrl, safetyOpts);
+    if (!check.valid) {
+      return {
+        ...node,
+        probe: {
+          reachable: false,
+          probedAt: new Date().toISOString(),
+          blocked: check.reason,
+        },
+      };
     }
 
     try {

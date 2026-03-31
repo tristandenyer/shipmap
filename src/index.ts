@@ -6,6 +6,7 @@ export { loadConfig } from './config.js';
 export { detectAuth } from './probe/auth.js';
 export { probeRoutes } from './probe/http.js';
 export { probeExternals } from './probe/external.js';
+export { validateProbeUrl } from './probe/validate.js';
 export { compareTopology } from './diff/compare.js';
 export { generateMarkdown } from './diff/markdown.js';
 export { archiveReport, readReportFromPath } from './probe/cache.js';

@@ -34,6 +34,8 @@ export function createCli(): Command {
     .option('--probe-timeout <ms>', 'Request timeout per route in ms', '10000')
     .option('--probe-concurrency <n>', 'Max concurrent probe requests', '5')
     .option('--probe-with-auth', 'Allow reading .env secrets for probe authentication')
+    .option('--allow-internal', 'Allow probing private/internal IP addresses')
+    .option('--allow-http', 'Allow probing non-localhost URLs over plain HTTP')
     .option('--serve [port]', 'Start live server with auto-refresh')
     .option('--diff', 'Compare to previous run and highlight changes')
     .option('--diff-from <path>', 'Compare to a specific previous report JSON')
@@ -51,6 +53,8 @@ export function createCli(): Command {
       probeTimeout: string;
       probeConcurrency: string;
       probeWithAuth?: boolean;
+      allowInternal?: boolean;
+      allowHttp?: boolean;
       serve?: string | boolean;
       diff?: boolean;
       diffFrom?: string;
@@ -141,6 +145,8 @@ export function createCli(): Command {
             concurrency: probeConcurrency,
             headers: probeHeaders,
             exclude: probeExclude,
+            allowInternal: options.allowInternal,
+            allowHttp: options.allowHttp,
             onProgress: (current, total, path, status, time) => {
               if (!options.quiet) {
                 const statusText = status === 0 ? 'TIMEOUT' : `${status}`;
@@ -184,6 +190,8 @@ export function createCli(): Command {
             log('\n  Probing external services...');
             const probedExternals = await probeExternals(externalNodes, {
               timeout: probeTimeout,
+              allowInternal: options.allowInternal,
+              allowHttp: options.allowHttp,
             });
             const extMap = new Map(probedExternals.map((n) => [n.id, n]));
             report.nodes = report.nodes.map((n) => extMap.get(n.id) || n);

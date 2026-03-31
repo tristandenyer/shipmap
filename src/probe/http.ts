@@ -1,4 +1,5 @@
 import type { RouteNode, ProbeStatus } from '../types.js';
+import { validateProbeUrl, type NetworkSafetyOptions } from './validate.js';
 
 export interface ProbeOptions {
   baseUrl: string;
@@ -6,6 +7,8 @@ export interface ProbeOptions {
   concurrency: number;
   headers?: Record<string, string>;
   exclude?: string[];
+  allowInternal?: boolean;
+  allowHttp?: boolean;
   onProgress?: (current: number, total: number, path: string, status: number, time: number) => void;
 }
 
@@ -90,6 +93,15 @@ export async function probeRoutes(
   nodes: RouteNode[],
   options: ProbeOptions,
 ): Promise<RouteNode[]> {
+  const safetyOpts: NetworkSafetyOptions = {
+    allowInternal: options.allowInternal,
+    allowHttp: options.allowHttp,
+  };
+  const check = await validateProbeUrl(options.baseUrl, safetyOpts);
+  if (!check.valid) {
+    throw new Error(`Probe URL blocked: ${check.reason}`);
+  }
+
   const baseUrl = options.baseUrl.replace(/\/$/, '');
   const sem = createSemaphore(options.concurrency);
   const exclude = options.exclude || [];

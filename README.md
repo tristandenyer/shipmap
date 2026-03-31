@@ -121,9 +121,17 @@ npm run shipmap -- --probe --probe-url https://preview.example.com
 
 # Include auth headers derived from .env secrets (NextAuth, Supabase, Basic Auth)
 npm run shipmap -- --probe --probe-with-auth
+
+# Allow probing private/internal IPs (10.x, 172.16.x, 192.168.x, CGNAT)
+npm run shipmap -- --probe --allow-internal
+
+# Allow probing non-localhost URLs over plain HTTP
+npm run shipmap -- --probe --allow-http
 ```
 
 > **Security note:** `--probe` does not send credentials by default. The `--probe-with-auth` flag must be passed explicitly to read secrets from `.env` files and include them as request headers. Secrets are never sent over plain HTTP to non-localhost URLs.
+>
+> By default, probe mode blocks requests to private/internal IP ranges (RFC 1918, CGNAT, link-local) and requires HTTPS for non-localhost targets. Cloud metadata endpoints (169.254.169.254) are always blocked. Use `--allow-internal` and `--allow-http` to relax these restrictions when needed.
 
 ### CI mode
 
@@ -394,6 +402,8 @@ const probed = await probeRoutes(routes, {
   timeout: 10000,
   concurrency: 5,
   headers: auth?.headers ?? {},
+  // allowInternal: true,  // permit private/internal IPs
+  // allowHttp: true,      // permit plain HTTP to non-localhost
 });
 
 // Check which external services are reachable
@@ -441,6 +451,7 @@ if (!result.passed) {
 | `generateMarkdown(report)`           | Renders service map as a Markdown table                |
 | `probeRoutes(nodes, options)`        | HTTP-probes route nodes against a running server       |
 | `probeExternals(nodes, options)`     | Checks reachability of external service hosts          |
+| `validateProbeUrl(url, options?)`    | Validates a URL against SSRF and protocol safety rules |
 | `detectAuth(dir)`                    | Auto-detects auth provider and generates probe headers |
 | `archiveReport(dir, report)`         | Saves a timestamped snapshot for future diffs          |
 | `readReportFromPath(path)`           | Reads a previously saved JSON report                   |
