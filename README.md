@@ -2,6 +2,8 @@
 
 **Map it before you ship it. Course correct after deploy.**
 
+![Pages discovered by shipmap](docs/images/shipmap-pages.png)
+
 Auto-discover routes, APIs, middleware, and external services in your web project, then generate an interactive HTML topology map.
 
 ```bash
@@ -18,7 +20,11 @@ shipmap scans your project and produces a self-contained HTML report showing:
 - **External services** detected from env var prefixes and import patterns (Stripe, Supabase, Firebase, AWS, OpenAI, Clerk, Prisma, and more)
 - **Connectors** showing relationships between middleware coverage, route-to-external dependencies
 
+![API routes discovered by shipmap](docs/images/shipmap-apis.png)
+
 The report is a single `.html` file with zero external dependencies. Open it in any browser.
+
+![External services discovered by shipmap](docs/images/shipmap-externals.png)
 
 ## Framework support
 
@@ -49,6 +55,14 @@ Or run directly without installing:
 
 ```bash
 npx shipmap
+```
+
+## Try it
+
+A sample Next.js project is included in the [`demo/`](demo/) folder (i GitHUb repo; not npm package). Run shipmap against it to see a full topology report without setting up your own project:
+
+```bash
+node bin/shipmap.js demo --verbose
 ```
 
 ## Usage
