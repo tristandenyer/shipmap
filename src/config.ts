@@ -2,6 +2,12 @@ import { pathToFileURL } from 'node:url';
 import { access, constants } from 'node:fs/promises';
 import { join } from 'node:path';
 
+export interface ExternalServiceConfig {
+  name: string;
+  envPrefixes?: string[];
+  importPatterns?: string[];
+}
+
 export interface ShipmapConfig {
   probe?: {
     baseUrl?: string;
@@ -15,6 +21,8 @@ export interface ShipmapConfig {
     exclude?: string[];
     include?: string[];
   };
+
+  externals?: ExternalServiceConfig[];
 
   groups?: Record<string, string | string[]>;
 
@@ -84,6 +92,24 @@ function validateConfig(config: unknown): asserts config is ShipmapConfig {
     }
     if (c.discovery.include !== undefined && !Array.isArray(c.discovery.include)) {
       throw new Error('Invalid shipmap config: discovery.include must be an array');
+    }
+  }
+
+  // Validate externals
+  if (c.externals !== undefined) {
+    if (!Array.isArray(c.externals)) {
+      throw new Error('Invalid shipmap config: externals must be an array');
+    }
+    for (const ext of c.externals) {
+      if (typeof ext !== 'object' || ext === null || typeof ext.name !== 'string') {
+        throw new Error('Invalid shipmap config: each external must be an object with a name string');
+      }
+      if (ext.envPrefixes !== undefined && !Array.isArray(ext.envPrefixes)) {
+        throw new Error('Invalid shipmap config: externals[].envPrefixes must be an array');
+      }
+      if (ext.importPatterns !== undefined && !Array.isArray(ext.importPatterns)) {
+        throw new Error('Invalid shipmap config: externals[].importPatterns must be an array');
+      }
     }
   }
 

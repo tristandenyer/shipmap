@@ -79,7 +79,9 @@ export function createCli(): Command {
         const probeExclude = probeConfig.exclude || [];
 
         log('  Detecting framework...');
-        const report = await discover(projectDir);
+        const report = await discover(projectDir, {
+          customExternals: config.externals,
+        });
 
         log(`  Framework: ${report.meta.framework}${report.meta.frameworkVersion ? ` v${report.meta.frameworkVersion}` : ''}`);
         log(`  Found: ${report.summary.totalRoutes} pages, ${report.summary.totalApiRoutes} API routes, ${report.summary.totalExternals} external services`);

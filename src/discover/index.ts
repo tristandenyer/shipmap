@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join, basename } from 'node:path';
 import type { TopologyReport, TopologyNode, Connector, FrameworkType } from '../types.js';
+import type { ExternalServiceConfig } from '../config.js';
 import { detectFramework } from '../detect/framework.js';
 import type { FrameworkDiscoverer } from './types.js';
 
@@ -41,7 +42,10 @@ async function getDiscoverer(frameworkType: FrameworkType): Promise<FrameworkDis
   }
 }
 
-export async function discover(projectDir: string): Promise<TopologyReport> {
+export async function discover(
+  projectDir: string,
+  options?: { customExternals?: ExternalServiceConfig[] },
+): Promise<TopologyReport> {
   const framework = await detectFramework(projectDir);
   const discoverer = await getDiscoverer(framework.type);
   const projectName = await getProjectName(projectDir);
@@ -60,7 +64,17 @@ export async function discover(projectDir: string): Promise<TopologyReport> {
 
   // Discover middleware and externals
   const middlewareResult = await discoverer.discoverMiddleware(projectDir, routeNodeIds);
-  const externalsResult = await discoverer.discoverExternals(projectDir, routeFileMap);
+
+  // Build extra patterns from config
+  const extraPatterns = options?.customExternals?.map((ext) => ({
+    name: ext.name,
+    envPrefixes: ext.envPrefixes || [],
+    importPatterns: ext.importPatterns || [],
+  }));
+
+  // All discoverers delegate to the shared externals module
+  const { discoverExternals } = await import('./nextjs/externals.js');
+  const externalsResult = await discoverExternals(projectDir, routeFileMap, extraPatterns);
 
   // Collect all nodes and connectors
   const nodes: TopologyNode[] = [...pageRoutes, ...apiRoutes];
