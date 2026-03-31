@@ -118,7 +118,12 @@ npm run shipmap -- --probe
 
 # Probe against a custom URL
 npm run shipmap -- --probe --probe-url https://preview.example.com
+
+# Include auth headers derived from .env secrets (NextAuth, Supabase, Basic Auth)
+npm run shipmap -- --probe --probe-with-auth
 ```
+
+> **Security note:** `--probe` does not send credentials by default. The `--probe-with-auth` flag must be passed explicitly to read secrets from `.env` files and include them as request headers. Secrets are never sent over plain HTTP to non-localhost URLs.
 
 ### CI mode
 
@@ -369,12 +374,15 @@ const md = generateMarkdown(current);
 
 Probe functions let you test discovered routes against a running server and check external service reachability. Combine with `discover()` to build health checks or deployment verification scripts.
 
+> **Security note:** `detectAuth()` reads real secret values from `.env` files and returns them as HTTP headers. Only call it when you intend to send credentials, and only probe over HTTPS for non-localhost targets.
+
 ```typescript
 import { discover, probeRoutes, probeExternals, detectAuth } from "shipmap";
 
 const report = await discover("./my-project");
 
-// Auto-detect auth headers (Clerk, NextAuth, etc.)
+// detectAuth() reads .env secrets (NEXTAUTH_SECRET, SUPABASE_SERVICE_ROLE_KEY, etc.)
+// Only use when you explicitly need authenticated probing
 const auth = await detectAuth("./my-project");
 
 // Probe all page and API routes

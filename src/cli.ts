@@ -33,6 +33,7 @@ export function createCli(): Command {
     .option('--probe-url <url>', 'Base URL to probe', 'http://localhost:3000')
     .option('--probe-timeout <ms>', 'Request timeout per route in ms', '10000')
     .option('--probe-concurrency <n>', 'Max concurrent probe requests', '5')
+    .option('--probe-with-auth', 'Allow reading .env secrets for probe authentication')
     .option('--serve [port]', 'Start live server with auto-refresh')
     .option('--diff', 'Compare to previous run and highlight changes')
     .option('--diff-from <path>', 'Compare to a specific previous report JSON')
@@ -49,6 +50,7 @@ export function createCli(): Command {
       probeUrl: string;
       probeTimeout: string;
       probeConcurrency: string;
+      probeWithAuth?: boolean;
       serve?: string | boolean;
       diff?: boolean;
       diffFrom?: string;
@@ -98,15 +100,30 @@ export function createCli(): Command {
           if (probeConfig.headers) {
             probeHeaders = { ...probeConfig.headers };
             log('  Auth: Using headers from shipmap.config.js');
-          } else {
+          } else if (options.probeWithAuth) {
+            // Block sending secrets over plain HTTP to non-localhost URLs
+            const probeUrlObj = new URL(probeUrl);
+            const isLocalhost = probeUrlObj.hostname === 'localhost' || probeUrlObj.hostname === '127.0.0.1' || probeUrlObj.hostname === '::1';
+            if (probeUrlObj.protocol === 'http:' && !isLocalhost) {
+              console.error('\n  ✗ Refusing to send auth secrets over plain HTTP to a non-localhost URL.');
+              console.error('    Use HTTPS or target localhost. To probe without auth, remove --probe-with-auth.\n');
+              process.exit(1);
+            }
+
             const auth = await detectAuth(projectDir);
             if (auth) {
               if (auth.provider === 'Clerk' && Object.keys(auth.headers).length === 0) {
                 log(`  Auth: ${auth.provider} detected — add probe.headers to shipmap.config.js with a valid JWT`);
               } else {
                 probeHeaders = auth.headers;
-                log(`  Auth: ${auth.provider} detected (session token generated)`);
+                log(`  ⚠ Auth: ${auth.provider} secrets read from .env — sending auth headers to ${probeUrl}`);
               }
+            }
+          } else {
+            // Auto-detect but don't use — just inform the user
+            const auth = await detectAuth(projectDir);
+            if (auth && auth.provider !== 'Clerk' && Object.keys(auth.headers).length > 0) {
+              log(`  Auth: ${auth.provider} detected — use --probe-with-auth to send credentials`);
             }
           }
 
