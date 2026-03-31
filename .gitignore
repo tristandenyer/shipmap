@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.shipmap/
+shipmap-report.html
+coverage/
+.DS_Store

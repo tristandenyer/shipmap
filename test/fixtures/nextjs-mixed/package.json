@@ -1,0 +1,8 @@
+{
+  "name": "test-nextjs-mixed",
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.3.0",
+    "@clerk/nextjs": "^5.0.0"
+  }
+}

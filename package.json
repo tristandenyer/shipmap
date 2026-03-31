@@ -1,0 +1,59 @@
+{
+  "name": "shipmap",
+  "version": "0.1.0",
+  "description": "Map it before you ship it. Auto-discover routes, APIs, middleware, and external services — generate an interactive HTML topology map.",
+  "type": "module",
+  "bin": {
+    "shipmap": "./bin/shipmap.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/ test/",
+    "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts'",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "nextjs",
+    "routes",
+    "topology",
+    "visualization",
+    "cli",
+    "developer-tools",
+    "api",
+    "middleware",
+    "map",
+    "html-report"
+  ],
+  "author": "Tristan Denyer",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "glob": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "eslint": "^9.5.0",
+    "prettier": "^3.3.0",
+    "tsup": "^8.1.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}
