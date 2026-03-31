@@ -1,6 +1,6 @@
 {
   "name": "shipmap",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Map it before you ship it. Auto-discover routes, APIs, middleware, and external services — generate an interactive HTML topology map.",
   "type": "module",
   "bin": {
@@ -45,6 +45,7 @@
   "author": "Tristan Denyer",
   "license": "MIT",
   "dependencies": {
+    "chokidar": "^5.0.0",
     "commander": "^12.1.0",
     "glob": "^11.0.0"
   },

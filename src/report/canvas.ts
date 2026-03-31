@@ -131,6 +131,23 @@ export function getCanvasScript(): string {
       el.style.top = pos.y + 'px';
       el.style.width = pos.w + 'px';
 
+      // Probe status class
+      var probeClass = '';
+      var statusDot = '';
+      if (node.probe && node.probe.status && node.probe.status !== 'not-probed') {
+        probeClass = ' probe-' + node.probe.status;
+        statusDot = '<span class="node-status ' + node.probe.status + '"></span>';
+      } else if (node.type === 'external' && node.probe) {
+        statusDot = '<span class="node-status ' + (node.probe.reachable ? 'ok' : 'error') + '"></span>';
+        probeClass = node.probe.reachable ? ' probe-ok' : ' probe-error';
+      } else if (node.type === 'external') {
+        statusDot = '<span class="node-status external"></span>';
+      } else if (REPORT.meta.mode === 'static') {
+        statusDot = '<span class="node-status not-probed"></span>';
+      }
+
+      el.className = 'node' + (node.id === selectedNodeId ? ' selected' : '') + probeClass;
+
       let meta = '';
       if (node.type === 'page' && node.rendering) {
         const cls = node.rendering.toLowerCase();
@@ -145,14 +162,31 @@ export function getCanvasScript(): string {
       }
       if (node.type === 'external') {
         meta = '<span style="font-size:10px;color:#a855f7">' + node.detectedFrom + '</span>';
+        if (node.probe) {
+          meta += node.probe.reachable
+            ? ' <span class="probe-badge ok">reachable</span>'
+            : ' <span class="probe-badge error">unreachable</span>';
+          if (node.probe.latency) meta += ' <span class="probe-time">' + node.probe.latency + 'ms</span>';
+        }
+      }
+
+      // Probe data badges
+      var probeMeta = '';
+      if (node.probe && node.probe.httpStatus) {
+        probeMeta = '<span class="probe-badge ' + node.probe.status + '">' + node.probe.httpStatus + '</span>';
+        if (node.probe.responseTime !== undefined) {
+          probeMeta += ' <span class="probe-time">' + node.probe.responseTime + 'ms</span>';
+        }
       }
 
       el.innerHTML =
         '<div class="node-header">' +
+          statusDot +
           '<span class="node-type ' + node.type + '">' + node.type + '</span>' +
           '<span class="node-label">' + escapeHtml(node.label) + '</span>' +
         '</div>' +
-        (meta ? '<div class="node-meta">' + meta + '</div>' : '');
+        (meta ? '<div class="node-meta">' + meta + '</div>' : '') +
+        (probeMeta ? '<div class="node-meta">' + probeMeta + '</div>' : '');
 
       // Measure height after render
       el.addEventListener('mousedown', onNodeMouseDown);
@@ -313,6 +347,41 @@ export function getCanvasScript(): string {
     if (node.runtime) html += field('Runtime', node.runtime);
     if (node.detectedFrom) html += field('Detected From', node.detectedFrom);
     if (node.group) html += field('Group', node.group);
+
+    // Probe results
+    if (node.probe) {
+      if (node.probe.httpStatus !== undefined) {
+        html += field('HTTP Status', node.probe.httpStatus);
+      }
+      if (node.probe.responseTime !== undefined) {
+        html += field('Response Time', node.probe.responseTime + 'ms');
+      }
+      if (node.probe.status) {
+        html += field('Probe Status', node.probe.status);
+      }
+      if (node.probe.reachable !== undefined) {
+        html += field('Host', node.probe.reachable ? 'Reachable' : 'Unreachable');
+        if (node.probe.latency) html += field('Latency', node.probe.latency + 'ms');
+      }
+      if (node.probe.probedAt) {
+        html += field('Last Probed', new Date(node.probe.probedAt).toLocaleString());
+      }
+      // Per-method results for API routes
+      if (node.probe.methodResults) {
+        html += '<div class="field"><div class="field-label">Method Results</div>';
+        for (var method in node.probe.methodResults) {
+          var mr = node.probe.methodResults[method];
+          var statusCls = mr.httpStatus >= 400 ? 'status-error' : mr.httpStatus === 0 ? 'status-error' : 'status-ok';
+          if (mr.responseTime > 2000) statusCls = 'status-slow';
+          html += '<div class="method-result">' +
+            '<span class="method">' + method + '</span>' +
+            '<span class="' + statusCls + '">' + (mr.httpStatus || 'TIMEOUT') + '</span>' +
+            '<span class="time">' + mr.responseTime + 'ms</span>' +
+          '</div>';
+        }
+        html += '</div>';
+      }
+    }
 
     // Show connections
     const outgoing = REPORT.connectors.filter(c => c.source === id);

@@ -95,6 +95,48 @@ html, body { height: 100%; overflow: hidden; font-family: 'SF Mono', 'Cascadia C
   background: var(--surface-hover); color: var(--api);
 }
 
+/* Probe status indicators */
+.node-status {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px;
+}
+.node-status.ok { background: var(--api); box-shadow: 0 0 6px var(--api); }
+.node-status.slow { background: var(--middleware); box-shadow: 0 0 6px var(--middleware); }
+.node-status.error { background: var(--ssr); box-shadow: 0 0 6px var(--ssr); }
+.node-status.not-probed { background: var(--static); }
+.node-status.external { background: var(--external); }
+
+.node.probe-ok { border-color: rgba(34,197,94,0.4); }
+.node.probe-slow { border-color: rgba(245,158,11,0.4); }
+.node.probe-error { border-color: rgba(239,68,68,0.4); }
+
+.probe-badge {
+  font-size: 9px; padding: 1px 4px; border-radius: 2px; font-weight: 600;
+}
+.probe-badge.ok { background: rgba(34,197,94,0.2); color: var(--api); }
+.probe-badge.slow { background: rgba(245,158,11,0.2); color: var(--middleware); }
+.probe-badge.error { background: rgba(239,68,68,0.2); color: var(--ssr); }
+
+.probe-time { font-size: 9px; color: var(--text-muted); }
+
+/* Probe mode toolbar */
+.mode-badge {
+  font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600;
+}
+.mode-badge.static { background: var(--surface-hover); color: var(--text-muted); }
+.mode-badge.probe { background: rgba(34,197,94,0.2); color: var(--api); }
+.probe-summary { font-size: 11px; color: var(--text-muted); }
+.probe-summary .ok { color: var(--api); }
+.probe-summary .error { color: var(--ssr); }
+.probe-summary .slow { color: var(--middleware); }
+
+/* Method results in detail panel */
+.method-result { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 12px; }
+.method-result .method { font-weight: 600; width: 50px; }
+.method-result .status-ok { color: var(--api); }
+.method-result .status-error { color: var(--ssr); }
+.method-result .status-slow { color: var(--middleware); }
+.method-result .time { color: var(--text-muted); font-size: 10px; }
+
 /* Group labels */
 .group-label {
   position: absolute; font-size: 11px; font-weight: 600;
