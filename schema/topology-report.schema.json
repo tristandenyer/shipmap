@@ -119,6 +119,35 @@
         ]
       }
     },
+    "snytch": {
+      "type": "object",
+      "description": "Aggregated secret findings from snytch scanner",
+      "properties": {
+        "totalFindings": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of secret findings"
+        },
+        "bySeverity": {
+          "type": "object",
+          "description": "Count of findings by severity level",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "affectedRoutes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of routes with at least one finding"
+        }
+      },
+      "required": [
+        "totalFindings",
+        "bySeverity",
+        "affectedRoutes"
+      ]
+    },
     "summary": {
       "type": "object",
       "description": "Summary statistics about the topology",
@@ -291,6 +320,13 @@
         "probe": {
           "$ref": "#/definitions/ProbeResult",
           "description": "Runtime probe results for this route (only in probe mode)"
+        },
+        "snytchFindings": {
+          "type": "array",
+          "description": "Secret findings from snytch scanner associated with this route's file",
+          "items": {
+            "$ref": "#/definitions/SnytchFindingSummary"
+          }
         }
       }
     },
@@ -582,6 +618,39 @@
               "responseTime": 250
             }
           }
+        }
+      }
+    },
+    "SnytchFindingSummary": {
+      "type": "object",
+      "description": "A secret finding from snytch scanner",
+      "required": [
+        "secretType",
+        "severity"
+      ],
+      "properties": {
+        "secretType": {
+          "type": "string",
+          "description": "Type of secret detected",
+          "example": "aws_key"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "description": "Severity level of the finding"
+        },
+        "line": {
+          "type": "integer",
+          "description": "Line number where the secret was found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable description of the finding"
         }
       }
     }

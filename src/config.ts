@@ -33,7 +33,7 @@ export interface ShipmapConfig {
   };
 }
 
-const CONFIG_FILES = ['shipmap.config.js', 'shipmap.config.mjs'];
+const CONFIG_FILES = ['shipmap.config.ts', 'shipmap.config.js', 'shipmap.config.mjs'];
 
 export async function loadConfig(projectDir: string): Promise<ShipmapConfig> {
   for (const filename of CONFIG_FILES) {
@@ -49,6 +49,17 @@ export async function loadConfig(projectDir: string): Promise<ShipmapConfig> {
       const e = err as { code?: string; message?: string };
       if (e.code === 'ENOENT' || e.code === 'ERR_MODULE_NOT_FOUND') continue;
       if (e.message?.startsWith('Invalid shipmap config')) throw err;
+      // If a .ts config failed to import, provide a helpful message
+      if (
+        filename.endsWith('.ts') &&
+        (e.code === 'ERR_UNKNOWN_FILE_EXTENSION' || e.message?.includes('Unknown file extension'))
+      ) {
+        throw new Error(
+          `Found ${filename} but TypeScript config files require a loader. ` +
+            'Either run with --import tsx (Node 18+), use --experimental-strip-types (Node 22+), ' +
+            'or rename to shipmap.config.js / shipmap.config.mjs.',
+        );
+      }
     }
   }
   return {};

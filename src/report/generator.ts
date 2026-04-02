@@ -34,6 +34,7 @@ export function generateReport(report: TopologyReport, diff?: DiffResult): strin
     <span class="stat">${report.summary.totalExternals} externals</span>
     ${report.summary.totalMiddleware > 0 ? `<span class="stat-sep">·</span><span class="stat">${report.summary.protectedRoutes} protected</span>` : ''}
     ${report.meta.mode === 'probe' ? `<span class="stat-sep">·</span><span class="probe-summary">${getProbeSummary(report)}</span>` : ''}
+    ${report.snytch ? `<span class="stat-sep">·</span><span class="snytch-summary">${getSnytchSummary(report)}</span>` : ''}
   </div>
   <div class="toolbar-right">
     <div class="search-wrapper">
@@ -165,6 +166,17 @@ function getProbeSummary(report: TopologyReport): string {
   if (slow > 0) parts.push(`<span class="slow">${slow} slow</span>`);
   if (notProbed > 0) parts.push(`${notProbed} skipped`);
   return parts.join(', ');
+}
+
+function getSnytchSummary(report: TopologyReport): string {
+  if (!report.snytch) return '';
+  const parts: string[] = [];
+  const sev = report.snytch.bySeverity;
+  if (sev.critical) parts.push(`<span class="snytch-critical">${sev.critical} critical</span>`);
+  if (sev.high) parts.push(`<span class="snytch-high">${sev.high} high</span>`);
+  if (sev.medium) parts.push(`${sev.medium} medium`);
+  if (sev.low) parts.push(`${sev.low} low`);
+  return `${report.snytch.totalFindings} secrets (${parts.join(', ')})`;
 }
 
 function escapeHtml(str: string): string {

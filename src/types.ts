@@ -49,6 +49,14 @@ export interface RouteNode {
   middleware?: string[];
   externals?: string[];
   probe?: ProbeResult;
+  snytchFindings?: SnytchFindingSummary[];
+}
+
+export interface SnytchFindingSummary {
+  secretType: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  line?: number;
+  message?: string;
 }
 
 export interface MiddlewareNode {
@@ -112,5 +120,10 @@ export interface TopologyReport {
     protectedRoutes: number;
     renderingBreakdown: Record<string, number>;
     errors?: number;
+  };
+  snytch?: {
+    totalFindings: number;
+    bySeverity: Record<string, number>;
+    affectedRoutes: number;
   };
 }

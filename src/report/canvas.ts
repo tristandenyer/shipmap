@@ -313,6 +313,19 @@ export function getCanvasScript(): string {
         }
       }
 
+      // Snytch badge
+      var snytchBadge = '';
+      if (node.snytchFindings && node.snytchFindings.length > 0) {
+        var maxSev = 'low';
+        var sevOrder = { low: 0, medium: 1, high: 2, critical: 3 };
+        for (var si = 0; si < node.snytchFindings.length; si++) {
+          if ((sevOrder[node.snytchFindings[si].severity] || 0) > (sevOrder[maxSev] || 0)) {
+            maxSev = node.snytchFindings[si].severity;
+          }
+        }
+        snytchBadge = '<span class="snytch-badge ' + maxSev + '" title="' + node.snytchFindings.length + ' secret(s) found">' + node.snytchFindings.length + ' secret' + (node.snytchFindings.length > 1 ? 's' : '') + '</span>';
+      }
+
       // Diff badge
       var diffBadge = '';
       if (isAdded) diffBadge = '<span class="diff-badge new">NEW</span>';
@@ -332,7 +345,7 @@ export function getCanvasScript(): string {
       }
 
       el.innerHTML =
-        diffBadge + actions +
+        diffBadge + snytchBadge + actions +
         '<div class="node-header">' +
           statusDot +
           '<span class="node-type ' + node.type + '">' + node.type + '</span>' +
@@ -590,6 +603,21 @@ export function getCanvasScript(): string {
         }
         html += '</div>';
       }
+    }
+
+    // Snytch findings
+    if (node.snytchFindings && node.snytchFindings.length > 0) {
+      html += '<div class="snytch-findings"><div class="field-label">Secret Findings</div>';
+      for (var si = 0; si < node.snytchFindings.length; si++) {
+        var sf = node.snytchFindings[si];
+        html += '<div class="snytch-finding-item ' + sf.severity + '">' +
+          '<span class="snytch-severity">' + sf.severity.toUpperCase() + '</span> ' +
+          '<span class="snytch-type">' + escapeHtml(sf.secretType) + '</span>' +
+          (sf.line ? ' <span class="snytch-line">line ' + sf.line + '</span>' : '') +
+          (sf.message ? '<div class="snytch-message">' + escapeHtml(sf.message) + '</div>' : '') +
+        '</div>';
+      }
+      html += '</div>';
     }
 
     // Diff changes

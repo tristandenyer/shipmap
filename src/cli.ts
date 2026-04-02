@@ -12,6 +12,7 @@ import { archiveReport, readLastReport, readReportFromPath, writeLastReport, wri
 import { probeExternals } from './probe/external.js';
 import { probeRoutes } from './probe/http.js';
 import { generateReport } from './report/generator.js';
+import { loadSnytchResults } from './snytch/index.js';
 import type { ExternalNode, MiddlewareNode, RouteNode, TopologyReport } from './types.js';
 
 export function createCli(): Command {
@@ -100,6 +101,44 @@ export function createCli(): Command {
           );
           if (report.summary.totalMiddleware > 0) {
             log(`  Middleware: ${report.summary.protectedRoutes} routes covered`);
+          }
+
+          // Snytch integration — attach secret findings to route nodes
+          const snytchResult = await loadSnytchResults(projectDir);
+          if (snytchResult && snytchResult.totalFindings > 0) {
+            const routeNodes = report.nodes.filter((n): n is RouteNode => n.type === 'page' || n.type === 'api');
+            let affectedRoutes = 0;
+            for (const node of routeNodes) {
+              const findings = snytchResult.routeFindings.get(node.filePath);
+              if (findings && findings.length > 0) {
+                node.snytchFindings = findings.map((f) => ({
+                  secretType: f.secretType,
+                  severity: f.severity,
+                  line: f.line,
+                  message: f.message,
+                }));
+                affectedRoutes++;
+              }
+            }
+
+            const bySeverity: Record<string, number> = {};
+            for (const f of snytchResult.findings) {
+              bySeverity[f.severity] = (bySeverity[f.severity] || 0) + 1;
+            }
+            report.snytch = {
+              totalFindings: snytchResult.totalFindings,
+              bySeverity,
+              affectedRoutes,
+            };
+
+            const severityParts: string[] = [];
+            if (bySeverity.critical) severityParts.push(`${bySeverity.critical} critical`);
+            if (bySeverity.high) severityParts.push(`${bySeverity.high} high`);
+            if (bySeverity.medium) severityParts.push(`${bySeverity.medium} medium`);
+            if (bySeverity.low) severityParts.push(`${bySeverity.low} low`);
+            log(
+              `  Secrets: ${snytchResult.totalFindings} findings (${severityParts.join(', ')}) in ${affectedRoutes} routes`,
+            );
           }
 
           // Probe mode

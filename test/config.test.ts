@@ -62,4 +62,19 @@ describe('loadConfig', () => {
       await cleanup();
     }
   });
+
+  it('prefers shipmap.config.ts when present and loadable', async () => {
+    const d = tmpDir();
+    dirs.push(d);
+    await mkdir(d, { recursive: true });
+    // Write a .ts file that is actually valid JS (tests run under a TS-aware loader via vitest)
+    await writeFile(join(d, 'shipmap.config.ts'), 'export default { probe: { baseUrl: "http://ts-config:5000" } };');
+    await writeFile(join(d, 'shipmap.config.mjs'), 'export default { probe: { baseUrl: "http://mjs-config:6000" } };');
+    try {
+      const config = await loadConfig(d);
+      expect(config.probe?.baseUrl).toBe('http://ts-config:5000');
+    } finally {
+      await cleanup();
+    }
+  });
 });

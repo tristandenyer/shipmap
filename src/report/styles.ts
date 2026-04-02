@@ -199,6 +199,29 @@ html, body { height: 100%; overflow: hidden; font-family: 'SF Mono', 'Cascadia C
 .diff-summary .removed { color: var(--ssr); }
 .diff-summary .changed { color: var(--middleware); }
 
+/* Snytch (secrets) */
+.snytch-summary { font-size: 11px; color: var(--text-muted); }
+.snytch-critical { color: #ef4444; font-weight: 600; }
+.snytch-high { color: #f97316; font-weight: 600; }
+.snytch-badge {
+  position: absolute; top: -6px; right: 24px; font-size: 8px; padding: 1px 5px;
+  border-radius: 3px; font-weight: 700; z-index: 2;
+}
+.snytch-badge.critical { background: #ef4444; color: #fff; }
+.snytch-badge.high { background: #f97316; color: #fff; }
+.snytch-badge.medium { background: #eab308; color: #000; }
+.snytch-badge.low { background: var(--surface-hover); color: var(--text-muted); }
+.snytch-findings { margin-top: 8px; }
+.snytch-finding-item { padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.snytch-severity { font-weight: 700; font-size: 10px; padding: 1px 4px; border-radius: 2px; }
+.snytch-finding-item.critical .snytch-severity { background: #ef4444; color: #fff; }
+.snytch-finding-item.high .snytch-severity { background: #f97316; color: #fff; }
+.snytch-finding-item.medium .snytch-severity { background: #eab308; color: #000; }
+.snytch-finding-item.low .snytch-severity { background: var(--surface-hover); color: var(--text-muted); }
+.snytch-type { color: var(--text); }
+.snytch-line { color: var(--text-muted); font-size: 10px; }
+.snytch-message { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+
 /* Method results in detail panel */
 .method-result { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 12px; }
 .method-result .method { font-weight: 600; width: 50px; }
