@@ -266,6 +266,7 @@ html, body { height: 100%; overflow: hidden; font-family: 'SF Mono', 'Cascadia C
   display: flex; align-items: center; gap: 6px;
   padding: 2px 6px; border-radius: 4px;
   transition: opacity 0.15s, background 0.15s;
+  white-space: nowrap;
 }
 .group-label:hover { opacity: 1; background: rgba(255,255,255,0.05); }
 .group-label .collapse-icon {

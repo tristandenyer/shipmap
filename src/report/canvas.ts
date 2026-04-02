@@ -215,7 +215,7 @@ export function getCanvasScript(): string {
       label.dataset.group = groupName;
       label.innerHTML = '<span class="collapse-icon">&#9660;</span> ' +
         escapeHtml(groupName === 'root' ? '/' : '/' + groupName) +
-        ' <span class="group-count">' + (searchQuery || activeFilterType !== 'all' || activeFilterStatus !== 'all' || activeFilterRendering !== 'all' ? visibleInGroup + ' of ' + nodeIds.length : nodeIds.length) + '</span>';
+        ' <span class="group-count">' + (searchQuery || activeFilterType !== 'all' || activeFilterStatus !== 'all' || activeFilterRendering !== 'all' ? visibleInGroup + '/' + nodeIds.length : nodeIds.length) + '</span>';
       label.style.left = (minX - pad) + 'px';
       label.style.top = (minY - pad - 22) + 'px';
       label.addEventListener('click', function(gn) { return function() { toggleGroup(gn); }; }(groupName));
@@ -278,8 +278,6 @@ export function getCanvasScript(): string {
           statusDot = '<span class="node-status ' + (node.probe.reachable ? 'ok' : 'error') + '"></span>';
         } else if (node.type === 'external') {
           statusDot = '<span class="node-status external"></span>';
-        } else if (REPORT.meta.mode === 'static') {
-          statusDot = '<span class="node-status not-probed"></span>';
         }
       }
 
