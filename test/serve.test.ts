@@ -1,5 +1,5 @@
-import { describe, it, expect, afterEach } from 'vitest';
 import { createServer, type Server } from 'node:http';
+import { afterEach, describe, expect, it } from 'vitest';
 
 // We test the SSE/HTTP server behavior at a lower level since startWatchServer
 // spawns long-running processes. Test the HTTP server patterns directly.
@@ -15,14 +15,14 @@ describe('serve module patterns', () => {
   });
 
   it('SSE endpoint sends events to connected clients', async () => {
-    const clients: Set<any> = new Set();
+    const clients: Set<import('node:http').ServerResponse> = new Set();
 
     server = createServer((req, res) => {
       if (req.url === '/events') {
         res.writeHead(200, {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
+          Connection: 'keep-alive',
         });
         res.write('data: connected\n\n');
         clients.add(res);
@@ -36,7 +36,7 @@ describe('serve module patterns', () => {
     await new Promise<void>((resolve) => {
       server!.listen(0, resolve);
     });
-    const port = (server!.address() as any).port;
+    const port = (server!.address() as { port: number }).port;
 
     // Test HTML endpoint
     const htmlRes = await fetch(`http://localhost:${port}/`);
@@ -67,7 +67,7 @@ describe('serve module patterns', () => {
     await new Promise<void>((resolve) => {
       server!.listen(0, resolve);
     });
-    const port = (server!.address() as any).port;
+    const port = (server!.address() as { port: number }).port;
 
     const res = await fetch(`http://localhost:${port}/api/topology`);
     expect(res.status).toBe(200);

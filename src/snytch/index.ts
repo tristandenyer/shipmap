@@ -16,19 +16,14 @@ export interface SnytchResult {
 }
 
 export async function loadSnytchResults(projectDir: string): Promise<SnytchResult | null> {
-  const possiblePaths = [
-    join(projectDir, '.snytch', 'scan-results.json'),
-    join(projectDir, 'snytch-report.json'),
-  ];
+  const possiblePaths = [join(projectDir, '.snytch', 'scan-results.json'), join(projectDir, 'snytch-report.json')];
 
   let rawData: string | null = null;
   for (const filePath of possiblePaths) {
     try {
       rawData = await readFile(filePath, 'utf-8');
       break;
-    } catch {
-      continue;
-    }
+    } catch {}
   }
 
   if (!rawData) {
@@ -36,11 +31,13 @@ export async function loadSnytchResults(projectDir: string): Promise<SnytchResul
   }
 
   try {
+    // biome-ignore lint/suspicious/noExplicitAny: parsing unknown external JSON format
     const parsed = JSON.parse(rawData) as any;
     if (!Array.isArray(parsed.findings)) {
       return null;
     }
 
+    // biome-ignore lint/suspicious/noExplicitAny: mapping unknown external JSON shape
     const findings: SnytchFinding[] = parsed.findings.map((item: any) => ({
       filePath: item.file || item.filePath || '',
       secretType: item.type || 'unknown',

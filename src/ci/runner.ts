@@ -1,5 +1,5 @@
-import type { TopologyReport, RouteNode, ExternalNode } from '../types.js';
 import type { DiffResult } from '../diff/compare.js';
+import type { ExternalNode, RouteNode, TopologyReport } from '../types.js';
 
 export interface CiFailure {
   rule: string;
@@ -30,11 +30,7 @@ export interface CiOptions {
   protectedRouteIds?: Set<string>;
 }
 
-export function evaluateCi(
-  report: TopologyReport,
-  failRules: CiFailRule[],
-  options: CiOptions = {},
-): CiResult {
+export function evaluateCi(report: TopologyReport, failRules: CiFailRule[], options: CiOptions = {}): CiResult {
   const failures: CiFailure[] = [];
   const summary = {
     routesOk: 0,
@@ -50,12 +46,8 @@ export function evaluateCi(
   const protectedRouteIds = options.protectedRouteIds ?? new Set();
 
   // Extract route nodes
-  const routeNodes = report.nodes.filter(
-    (n): n is RouteNode => n.type === 'page' || n.type === 'api',
-  );
-  const externalNodes = report.nodes.filter(
-    (n): n is ExternalNode => n.type === 'external',
-  );
+  const routeNodes = report.nodes.filter((n): n is RouteNode => n.type === 'page' || n.type === 'api');
+  const externalNodes = report.nodes.filter((n): n is ExternalNode => n.type === 'external');
 
   // Check errors (5xx routes)
   if (failRules.includes('errors')) {
@@ -181,11 +173,7 @@ export function evaluateCi(
   };
 }
 
-export function formatCiOutput(
-  result: CiResult,
-  report: TopologyReport,
-  isTTY: boolean,
-): string {
+export function formatCiOutput(result: CiResult, report: TopologyReport, isTTY: boolean): string {
   if (!isTTY) {
     // Minimal output when piped
     const lines: string[] = [];
@@ -196,7 +184,9 @@ export function formatCiOutput(
       for (const failure of result.failures) {
         lines.push(`  ${failure.rule}: ${failure.message}`);
       }
-      lines.push(`\nEXIT ${result.exitCode}: ${result.failures.length} ${result.failures.length === 1 ? 'failure' : 'failures'} found`);
+      lines.push(
+        `\nEXIT ${result.exitCode}: ${result.failures.length} ${result.failures.length === 1 ? 'failure' : 'failures'} found`,
+      );
     }
     return lines.join('\n');
   }
@@ -243,7 +233,9 @@ export function formatCiOutput(
   // Unreachable externals
   const unreachableFailures = result.failures.filter((f) => f.rule === 'unreachable');
   if (unreachableFailures.length > 0) {
-    lines.push(`  ✗ ${unreachableFailures.length} external service${unreachableFailures.length === 1 ? '' : 's'} unreachable`);
+    lines.push(
+      `  ✗ ${unreachableFailures.length} external service${unreachableFailures.length === 1 ? '' : 's'} unreachable`,
+    );
   } else {
     const externalCount = report.nodes.filter((n) => n.type === 'external').length;
     if (externalCount > 0) {

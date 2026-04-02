@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createServer, type Server } from 'node:http';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { probeRoutes } from '../src/probe/http.js';
-import type { RouteNode } from '../src/types.js';
+import type { HttpMethod, RouteNode } from '../src/types.js';
 
 let server: Server;
 let port: number;
@@ -14,7 +14,7 @@ function makeNode(path: string, type: 'page' | 'api' = 'page', methods?: string[
     filePath: `app${path}/page.tsx`,
     group: 'root',
     label: path,
-    methods: methods as any,
+    methods: methods as HttpMethod[] | undefined,
   };
 }
 
@@ -56,7 +56,7 @@ beforeAll(async () => {
 
   await new Promise<void>((resolve) => {
     server.listen(0, () => {
-      port = (server.address() as any).port;
+      port = (server.address() as { port: number }).port;
       resolve();
     });
   });
@@ -178,7 +178,9 @@ describe('probeRoutes', () => {
       baseUrl: `http://localhost:${port}`,
       timeout: 5000,
       concurrency: 5,
-      onProgress: () => { called = true; },
+      onProgress: () => {
+        called = true;
+      },
     });
     expect(called).toBe(true);
   });

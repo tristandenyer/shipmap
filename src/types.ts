@@ -26,10 +26,13 @@ export interface ProbeResult {
   httpStatus?: number;
   responseTime?: number;
   probedAt?: string;
-  methodResults?: Record<HttpMethod, {
-    httpStatus: number;
-    responseTime: number;
-  }>;
+  methodResults?: Record<
+    HttpMethod,
+    {
+      httpStatus: number;
+      responseTime: number;
+    }
+  >;
 }
 
 export interface RouteNode {

@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { writeFile, mkdir, rm } from 'node:fs/promises';
+import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config.js';
 
 let counter = 0;
@@ -22,7 +22,9 @@ describe('loadConfig', () => {
 
   async function cleanup() {
     for (const d of dirs) {
-      try { await rm(d, { recursive: true }); } catch {}
+      try {
+        await rm(d, { recursive: true });
+      } catch {}
     }
     dirs.length = 0;
   }

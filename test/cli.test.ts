@@ -1,6 +1,6 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import { join } from 'node:path';
 import { readFile, unlink } from 'node:fs/promises';
+import { join } from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
 import { createCli } from '../src/cli.js';
 
 const fixtures = join(__dirname, 'fixtures');
@@ -10,7 +10,9 @@ describe('CLI', () => {
 
   afterEach(async () => {
     for (const f of outputFiles) {
-      try { await unlink(f); } catch {}
+      try {
+        await unlink(f);
+      } catch {}
     }
     outputFiles.length = 0;
   });
@@ -21,10 +23,12 @@ describe('CLI', () => {
 
     const cli = createCli();
     await cli.parseAsync([
-      'node', 'shipmap',
+      'node',
+      'shipmap',
       join(fixtures, 'nextjs-app-router'),
       '--json',
-      '--output', output,
+      '--output',
+      output,
       '--quiet',
       '--no-open',
     ]);
@@ -50,9 +54,11 @@ describe('CLI', () => {
 
     const cli = createCli();
     await cli.parseAsync([
-      'node', 'shipmap',
+      'node',
+      'shipmap',
       join(fixtures, 'nextjs-app-router'),
-      '--output', output,
+      '--output',
+      output,
       '--quiet',
       '--no-open',
     ]);
@@ -68,10 +74,12 @@ describe('CLI', () => {
 
     const cli = createCli();
     await cli.parseAsync([
-      'node', 'shipmap',
+      'node',
+      'shipmap',
       join(fixtures, 'nextjs-app-router'),
       '--json',
-      '--output', join(__dirname, 'tmp-cli-rename.html'),
+      '--output',
+      join(__dirname, 'tmp-cli-rename.html'),
       '--quiet',
       '--no-open',
     ]);
@@ -85,8 +93,12 @@ describe('CLI', () => {
     const cli = createCli();
     let helpText = '';
     cli.configureOutput({
-      writeOut: (str: string) => { helpText += str; },
-      writeErr: (str: string) => { helpText += str; },
+      writeOut: (str: string) => {
+        helpText += str;
+      },
+      writeErr: (str: string) => {
+        helpText += str;
+      },
     });
     cli.exitOverride();
 
@@ -107,8 +119,12 @@ describe('CLI', () => {
     const cli = createCli();
     let versionText = '';
     cli.configureOutput({
-      writeOut: (str: string) => { versionText += str; },
-      writeErr: (str: string) => { versionText += str; },
+      writeOut: (str: string) => {
+        versionText += str;
+      },
+      writeErr: (str: string) => {
+        versionText += str;
+      },
     });
     cli.exitOverride();
 
@@ -127,14 +143,18 @@ describe('CLI', () => {
 
     const logs: string[] = [];
     const origLog = console.log;
-    console.log = (...args: any[]) => { logs.push(args.join(' ')); };
+    console.log = (...args: unknown[]) => {
+      logs.push(args.join(' '));
+    };
 
     try {
       const cli = createCli();
       await cli.parseAsync([
-        'node', 'shipmap',
+        'node',
+        'shipmap',
         join(fixtures, 'nextjs-app-router'),
-        '--output', output,
+        '--output',
+        output,
         '--verbose',
         '--no-open',
       ]);
@@ -153,17 +173,17 @@ describe('CLI', () => {
     let exitCode: number | undefined;
     let errorOutput = '';
 
-    process.exit = ((code?: number) => { exitCode = code; throw new Error('process.exit'); }) as any;
-    console.error = (...args: any[]) => { errorOutput += args.join(' '); };
+    process.exit = ((code?: number) => {
+      exitCode = code;
+      throw new Error('process.exit');
+    }) as typeof process.exit;
+    console.error = (...args: unknown[]) => {
+      errorOutput += args.join(' ');
+    };
 
     try {
       const cli = createCli();
-      await cli.parseAsync([
-        'node', 'shipmap',
-        '/tmp/nonexistent-dir-shipmap-test',
-        '--quiet',
-        '--no-open',
-      ]);
+      await cli.parseAsync(['node', 'shipmap', '/tmp/nonexistent-dir-shipmap-test', '--quiet', '--no-open']);
     } catch {
       // expected
     } finally {

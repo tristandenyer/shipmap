@@ -1,7 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import type { MiddlewareNode, Connector } from '../../types.js';
+import type { Connector, MiddlewareNode } from '../../types.js';
 
 interface MiddlewareResult {
   node: MiddlewareNode;
@@ -37,9 +37,7 @@ export async function discoverMiddleware(
     return null;
   }
 
-  const relPath = middlewarePath.startsWith(projectDir)
-    ? middlewarePath.slice(projectDir.length + 1)
-    : middlewarePath;
+  const relPath = middlewarePath.startsWith(projectDir) ? middlewarePath.slice(projectDir.length + 1) : middlewarePath;
 
   const matchers = extractMatchers(content);
   const authProvider = detectAuthProvider(content);
@@ -148,9 +146,9 @@ function matchesRoute(routePath: string, patterns: string[]): boolean {
     // Convert Next.js matcher pattern to simple test
     // /dashboard/:path* → matches /dashboard and /dashboard/*
     const regexStr = pattern
-      .replace(/\/:[\w]+\*/g, '(?:/.*)?')  // /:path* → optional catch-all
-      .replace(/:[^/]+/g, '[^/]+')          // :param → [^/]+
-      .replace(/\//g, '\\/');                // escape slashes
+      .replace(/\/:[\w]+\*/g, '(?:/.*)?') // /:path* → optional catch-all
+      .replace(/:[^/]+/g, '[^/]+') // :param → [^/]+
+      .replace(/\//g, '\\/'); // escape slashes
 
     const regex = new RegExp(`^${regexStr}(?:\\/.*)?$`);
     if (regex.test(routePath)) return true;

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
 import { sveltekitDiscoverer } from '../src/discover/sveltekit/discoverer.js';
 
 const FIXTURE_DIR = resolve(__dirname, 'fixtures', 'sveltekit');
@@ -199,10 +199,7 @@ describe('SvelteKit Discoverer', () => {
     it('should return null if handle export is missing', async () => {
       // This would require creating a temporary test fixture without the handle export
       // For now, we verify the behavior by testing with a non-existent path
-      const middleware = await sveltekitDiscoverer.discoverMiddleware(
-        '/some/nonexistent/path',
-        new Map(),
-      );
+      const middleware = await sveltekitDiscoverer.discoverMiddleware('/some/nonexistent/path', new Map());
 
       expect(middleware).toBeNull();
     });

@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { compareTopology } from '../src/diff/compare.js';
-import type { TopologyReport, RouteNode, ExternalNode, Connector } from '../src/types.js';
+import type { Connector, ExternalNode, RouteNode, TopologyReport } from '../src/types.js';
 
 function makeReport(overrides: Partial<TopologyReport> = {}): TopologyReport {
   return {
@@ -156,10 +156,12 @@ describe('compareTopology', () => {
     const prev = makeReport({ nodes: [makePage('/home')] });
     // Different id, same path
     const curr = makeReport({
-      nodes: [{
-        ...makePage('/home'),
-        id: 'different-id',
-      }],
+      nodes: [
+        {
+          ...makePage('/home'),
+          id: 'different-id',
+        },
+      ],
     });
 
     const diff = compareTopology(curr, prev);
@@ -170,8 +172,22 @@ describe('compareTopology', () => {
   });
 
   it('detects connector changes', () => {
-    const conn1: Connector = { source: 'a', target: 'b', type: 'call', confidence: 'static', style: 'solid', color: 'green' };
-    const conn2: Connector = { source: 'c', target: 'd', type: 'call', confidence: 'static', style: 'solid', color: 'green' };
+    const conn1: Connector = {
+      source: 'a',
+      target: 'b',
+      type: 'call',
+      confidence: 'static',
+      style: 'solid',
+      color: 'green',
+    };
+    const conn2: Connector = {
+      source: 'c',
+      target: 'd',
+      type: 'call',
+      confidence: 'static',
+      style: 'solid',
+      color: 'green',
+    };
 
     const prev = makeReport({ connectors: [conn1] });
     const curr = makeReport({ connectors: [conn2] });
@@ -197,9 +213,14 @@ describe('compareTopology', () => {
 
   it('handles external nodes', () => {
     const ext: ExternalNode = {
-      id: 'ext-stripe', type: 'external', name: 'Stripe',
-      label: 'Stripe', group: 'external', host: 'api.stripe.com',
-      detectedFrom: 'env', referencedBy: ['/api/pay'],
+      id: 'ext-stripe',
+      type: 'external',
+      name: 'Stripe',
+      label: 'Stripe',
+      group: 'external',
+      host: 'api.stripe.com',
+      detectedFrom: 'env',
+      referencedBy: ['/api/pay'],
     };
     const prev = makeReport({ nodes: [] });
     const curr = makeReport({ nodes: [ext] });

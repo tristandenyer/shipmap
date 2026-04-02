@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
 import { detectFramework } from '../src/detect/framework.js';
 
 const fixtures = join(__dirname, 'fixtures');

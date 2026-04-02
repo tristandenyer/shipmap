@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
 import { remixDiscoverer } from '../src/discover/remix/discoverer.js';
 
 const fixtures = join(__dirname, 'fixtures');
@@ -172,9 +172,7 @@ describe('remixDiscoverer', () => {
     });
 
     it('creates external nodes for detected services', async () => {
-      const routeFiles = new Map([
-        ['app/routes/_index.tsx', 'test-id-1'],
-      ]);
+      const routeFiles = new Map([['app/routes/_index.tsx', 'test-id-1']]);
 
       const result = await remixDiscoverer.discoverExternals(remixFixture, routeFiles);
 

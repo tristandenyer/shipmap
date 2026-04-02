@@ -1,7 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import type { MiddlewareNode, Connector } from '../../types.js';
+import type { Connector, MiddlewareNode } from '../../types.js';
 import type { MiddlewareResult } from '../types.js';
 
 export async function discoverMiddleware(
@@ -67,7 +67,7 @@ export async function discoverMiddleware(
   // Create connectors to all routes
   const connectors: Connector[] = [];
 
-  for (const [routePath, routeId] of routeNodeIds) {
+  for (const [_routePath, routeId] of routeNodeIds) {
     connectors.push({
       source: nodeId,
       target: routeId,

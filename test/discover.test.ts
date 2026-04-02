@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
 import { discover } from '../src/discover/index.js';
 
 const fixtures = join(__dirname, 'fixtures');
@@ -20,7 +20,7 @@ describe('discover (orchestrator)', () => {
     expect(report.summary.totalExternals).toBeGreaterThan(0);
 
     // Nodes should include all types
-    const types = new Set(report.nodes.map(n => n.type));
+    const types = new Set(report.nodes.map((n) => n.type));
     expect(types.has('page')).toBe(true);
     expect(types.has('api')).toBe(true);
     expect(types.has('middleware')).toBe(true);

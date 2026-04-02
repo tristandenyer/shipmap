@@ -1,7 +1,8 @@
+import { randomUUID } from 'node:crypto';
+import type { Dirent } from 'node:fs';
 import { readdir, stat } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import type { RouteNode, RenderingStrategy } from '../../types.js';
+import type { RouteNode } from '../../types.js';
 import { detectRenderingStrategy } from './rendering.js';
 
 export async function discoverPageRoutes(projectDir: string): Promise<RouteNode[]> {
@@ -83,7 +84,7 @@ async function scanPagesRouter(projectDir: string, pagesDir: string): Promise<Ro
     // Skip special Next.js files and API routes
     const baseName = name.split(sep).pop() || '';
     if (skipFiles.has(baseName)) continue;
-    if (relPath.startsWith('api' + sep) || relPath === 'api') continue;
+    if (relPath.startsWith(`api${sep}`) || relPath === 'api') continue;
 
     const routePath = pagesRouterPathToRoute(name);
     const relFromProject = relative(projectDir, filePath);
@@ -123,7 +124,7 @@ function appRouterPathToRoute(relPath: string): string {
   }
 
   if (routeSegments.length === 0) return '/';
-  return '/' + routeSegments.join('/');
+  return `/${routeSegments.join('/')}`;
 }
 
 function pagesRouterPathToRoute(name: string): string {
@@ -135,7 +136,7 @@ function pagesRouterPathToRoute(name: string): string {
   }
 
   if (segments.length === 0) return '/';
-  return '/' + segments.join('/');
+  return `/${segments.join('/')}`;
 }
 
 export function computeGroup(routePath: string): string {
@@ -150,7 +151,7 @@ async function findFiles(dir: string, pattern: RegExp): Promise<string[]> {
   const results: string[] = [];
 
   async function walk(current: string) {
-    let entries;
+    let entries: Dirent[];
     try {
       entries = await readdir(current, { withFileTypes: true });
     } catch {

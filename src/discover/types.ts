@@ -1,4 +1,4 @@
-import type { RouteNode, MiddlewareNode, ExternalNode, Connector } from '../types.js';
+import type { Connector, ExternalNode, MiddlewareNode, RouteNode } from '../types.js';
 
 export interface MiddlewareResult {
   node: MiddlewareNode;

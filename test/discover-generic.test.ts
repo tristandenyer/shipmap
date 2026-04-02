@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { join } from 'node:path';
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { discover } from '../src/discover/index.js';
 
 describe('Generic discovery', () => {
@@ -24,7 +24,7 @@ describe('Generic discovery', () => {
 
     const report = await discover(tempDir);
     expect(report.meta.framework).toBe('generic');
-    const pages = report.nodes.filter(n => n.type === 'page');
+    const pages = report.nodes.filter((n) => n.type === 'page');
     expect(pages.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -34,7 +34,7 @@ describe('Generic discovery', () => {
     await writeFile(join(tempDir, 'api', 'users.ts'), 'export function GET() {}');
 
     const report = await discover(tempDir);
-    const apis = report.nodes.filter(n => n.type === 'api');
+    const apis = report.nodes.filter((n) => n.type === 'api');
     expect(apis.length).toBeGreaterThanOrEqual(1);
   });
 

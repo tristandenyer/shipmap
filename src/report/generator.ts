@@ -1,7 +1,7 @@
-import type { TopologyReport } from '../types.js';
 import type { DiffResult } from '../diff/compare.js';
-import { getStyles } from './styles.js';
+import type { RouteNode, TopologyReport } from '../types.js';
 import { getCanvasScript } from './canvas.js';
+import { getStyles } from './styles.js';
 
 export function generateReport(report: TopologyReport, diff?: DiffResult): string {
   const dataJson = JSON.stringify(report);
@@ -22,7 +22,7 @@ export function generateReport(report: TopologyReport, diff?: DiffResult): strin
   <div class="toolbar-left">
     <span class="logo">⚓ shipmap</span>
     <span class="project-name">${escapeHtml(report.meta.projectName)}</span>
-    <span class="framework-badge">${escapeHtml(report.meta.framework)}${report.meta.frameworkVersion ? ' v' + escapeHtml(report.meta.frameworkVersion) : ''}</span>
+    <span class="framework-badge">${escapeHtml(report.meta.framework)}${report.meta.frameworkVersion ? ` v${escapeHtml(report.meta.frameworkVersion)}` : ''}</span>
     <span class="mode-badge ${report.meta.mode}">${report.meta.mode === 'probe' ? 'Probe mode' : 'Static mode'}</span>
     ${diff ? `<span class="diff-summary">${getDiffSummary(diff)}</span>` : ''}
   </div>
@@ -61,7 +61,9 @@ export function generateReport(report: TopologyReport, diff?: DiffResult): strin
     <button class="filter-btn" data-filter-type="external">External</button>
   </div>
   <div class="filter-sep"></div>
-  ${report.meta.mode === 'probe' ? `
+  ${
+    report.meta.mode === 'probe'
+      ? `
   <div class="filter-group">
     <span class="filter-group-label">Status</span>
     <button class="filter-btn active" data-filter-status="all">All</button>
@@ -70,7 +72,9 @@ export function generateReport(report: TopologyReport, diff?: DiffResult): strin
     <button class="filter-btn" data-filter-status="error">Errors</button>
   </div>
   <div class="filter-sep"></div>
-  ` : ''}
+  `
+      : ''
+  }
   <div class="filter-group">
     <span class="filter-group-label">Rendering</span>
     <button class="filter-btn active" data-filter-rendering="all">All</button>
@@ -139,13 +143,17 @@ function getDiffSummary(diff: DiffResult): string {
 }
 
 function getProbeSummary(report: TopologyReport): string {
-  const routes = report.nodes.filter(
-    (n) => n.type === 'page' || n.type === 'api',
-  );
-  let ok = 0, errors = 0, slow = 0, notProbed = 0;
+  const routes = report.nodes.filter((n) => n.type === 'page' || n.type === 'api');
+  let ok = 0,
+    errors = 0,
+    slow = 0,
+    notProbed = 0;
   for (const n of routes) {
-    const probe = (n as any).probe;
-    if (!probe) { notProbed++; continue; }
+    const probe = (n as RouteNode).probe;
+    if (!probe) {
+      notProbed++;
+      continue;
+    }
     if (probe.status === 'ok') ok++;
     else if (probe.status === 'error') errors++;
     else if (probe.status === 'slow') slow++;
@@ -160,9 +168,5 @@ function getProbeSummary(report: TopologyReport): string {
 }
 
 function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

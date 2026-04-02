@@ -1,6 +1,7 @@
+import { randomUUID } from 'node:crypto';
+import type { Dirent } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
-import { randomUUID } from 'node:crypto';
 import type { RouteNode } from '../../types.js';
 import { computeGroup } from './routes.js';
 
@@ -56,11 +57,12 @@ function extractApiCalls(content: string): string[] {
 
   // Match fetch('/api/...'), fetch("/api/..."), fetch(`/api/...`)
   const fetchPattern = /fetch\s*\(\s*['"`]\/api\/([^'"`]*)['""`]/g;
-  let match;
+  let match: RegExpExecArray | null = fetchPattern.exec(content);
 
-  while ((match = fetchPattern.exec(content)) !== null) {
-    const path = '/api/' + match[1];
+  while (match !== null) {
+    const path = `/api/${match[1]}`;
     apis.push(path);
+    match = fetchPattern.exec(content);
   }
 
   return [...new Set(apis)]; // Deduplicate
@@ -70,7 +72,7 @@ async function findFiles(dir: string, pattern: RegExp): Promise<string[]> {
   const results: string[] = [];
 
   async function walk(current: string) {
-    let entries;
+    let entries: Dirent[];
     try {
       entries = await readdir(current, { withFileTypes: true });
     } catch {

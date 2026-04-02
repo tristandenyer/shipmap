@@ -1,12 +1,11 @@
-import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
 import { nuxtDiscoverer } from '../src/discover/nuxt/discoverer.js';
 
 const fixtureDir = resolve('./test/fixtures/nuxt3');
 const discoverer = nuxtDiscoverer;
 
 describe('Nuxt Discoverer', () => {
-
   describe('discoverRoutes', () => {
     it('should discover page routes from pages directory', async () => {
       const routes = await discoverer.discoverRoutes(fixtureDir);

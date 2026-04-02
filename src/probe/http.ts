@@ -1,5 +1,5 @@
-import type { RouteNode, ProbeStatus } from '../types.js';
-import { validateProbeUrl, type NetworkSafetyOptions } from './validate.js';
+import type { HttpMethod, ProbeStatus, RouteNode } from '../types.js';
+import { type NetworkSafetyOptions, validateProbeUrl } from './validate.js';
 
 export interface ProbeOptions {
   baseUrl: string;
@@ -14,9 +14,7 @@ export interface ProbeOptions {
 
 function matchesExclude(routePath: string, patterns: string[]): boolean {
   for (const pattern of patterns) {
-    const regex = new RegExp(
-      '^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$',
-    );
+    const regex = new RegExp(`^${pattern.replace(/\*/g, '.*').replace(/\?/g, '.')}$`);
     if (regex.test(routePath)) return true;
   }
   return false;
@@ -56,8 +54,8 @@ async function probeUrl(
     const response = await fetch(url, fetchOptions);
     const responseTime = Math.round(performance.now() - start);
     return { httpStatus: response.status, responseTime };
-  } catch (err: any) {
-    if (err.name === 'AbortError') {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
       return { httpStatus: 0, responseTime: options.timeout };
     }
     return { httpStatus: 0, responseTime: 0 };
@@ -78,7 +76,10 @@ function createSemaphore(max: number) {
         return;
       }
       return new Promise<void>((resolve) => {
-        queue.push(() => { current++; resolve(); });
+        queue.push(() => {
+          current++;
+          resolve();
+        });
       });
     },
     release(): void {
@@ -89,10 +90,7 @@ function createSemaphore(max: number) {
   };
 }
 
-export async function probeRoutes(
-  nodes: RouteNode[],
-  options: ProbeOptions,
-): Promise<RouteNode[]> {
+export async function probeRoutes(nodes: RouteNode[], options: ProbeOptions): Promise<RouteNode[]> {
   const safetyOpts: NetworkSafetyOptions = {
     allowInternal: options.allowInternal,
     allowHttp: options.allowHttp,
@@ -127,7 +125,7 @@ export async function probeRoutes(
 
         if (node.type === 'api' && node.methods && node.methods.length > 0) {
           // Probe each method for API routes
-          const methodResults: Record<string, { httpStatus: number; responseTime: number }> = {};
+          const methodResults: Partial<Record<HttpMethod, { httpStatus: number; responseTime: number }>> = {};
           let worstStatus: ProbeStatus = 'ok';
           let primaryHttp = 200;
           let primaryTime = 0;
@@ -157,7 +155,7 @@ export async function probeRoutes(
               httpStatus: primaryHttp,
               responseTime: primaryTime,
               probedAt: new Date().toISOString(),
-              methodResults: methodResults as any,
+              methodResults: methodResults as Record<HttpMethod, { httpStatus: number; responseTime: number }>,
             },
           };
         } else {

@@ -1,11 +1,11 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { watch } from 'chokidar';
 import { discover } from '../discover/index.js';
-import { generateReport } from '../report/generator.js';
-import { probeRoutes, type ProbeOptions } from '../probe/http.js';
-import { probeExternals } from '../probe/external.js';
 import { writeLastReport } from '../probe/cache.js';
-import type { RouteNode, ExternalNode } from '../types.js';
+import { probeExternals } from '../probe/external.js';
+import { type ProbeOptions, probeRoutes } from '../probe/http.js';
+import { generateReport } from '../report/generator.js';
+import type { ExternalNode, RouteNode } from '../types.js';
 
 interface WatchServerOptions {
   projectDir: string;
@@ -45,9 +45,7 @@ export async function startWatchServer(options: WatchServerOptions): Promise<voi
 
       if (probeEnabled && probeOptions) {
         report.meta.mode = 'probe';
-        const routeNodes = report.nodes.filter(
-          (n): n is RouteNode => n.type === 'page' || n.type === 'api',
-        );
+        const routeNodes = report.nodes.filter((n): n is RouteNode => n.type === 'page' || n.type === 'api');
         const probedRoutes = await probeRoutes(routeNodes, probeOptions);
         const probedMap = new Map(probedRoutes.map((n) => [n.id, n]));
         report.nodes = report.nodes.map((n) => probedMap.get(n.id) || n);
@@ -61,9 +59,7 @@ export async function startWatchServer(options: WatchServerOptions): Promise<voi
           return c;
         });
 
-        const externalNodes = report.nodes.filter(
-          (n): n is ExternalNode => n.type === 'external',
-        );
+        const externalNodes = report.nodes.filter((n): n is ExternalNode => n.type === 'external');
         if (externalNodes.length > 0) {
           const probedExternals = await probeExternals(externalNodes, {
             timeout: probeOptions.timeout,
@@ -77,7 +73,7 @@ export async function startWatchServer(options: WatchServerOptions): Promise<voi
       currentJson = JSON.stringify(report, null, 2);
       const html = generateReport(report);
       // Inject SSE script before </body>
-      currentHtml = html.replace('</body>', SSE_SCRIPT + '</body>');
+      currentHtml = html.replace('</body>', `${SSE_SCRIPT}</body>`);
 
       // Notify all SSE clients
       for (const client of sseClients) {
@@ -98,7 +94,7 @@ export async function startWatchServer(options: WatchServerOptions): Promise<voi
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
         'Access-Control-Allow-Origin': '*',
       });
       res.write('data: connected\n\n');

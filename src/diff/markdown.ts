@@ -1,11 +1,13 @@
-import type { TopologyReport, RouteNode, MiddlewareNode, ExternalNode } from '../types.js';
+import type { ExternalNode, MiddlewareNode, RouteNode, TopologyReport } from '../types.js';
 
 export function generateMarkdown(report: TopologyReport): string {
   const lines: string[] = [];
   const mode = report.meta.mode;
 
   lines.push(`# shipmap — ${report.meta.projectName}`);
-  lines.push(`> Generated: ${report.meta.generatedAt} | Framework: ${report.meta.framework}${report.meta.frameworkVersion ? ' ' + report.meta.frameworkVersion : ''} | Mode: ${mode === 'probe' ? 'Probe' : 'Static'}`);
+  lines.push(
+    `> Generated: ${report.meta.generatedAt} | Framework: ${report.meta.framework}${report.meta.frameworkVersion ? ` ${report.meta.frameworkVersion}` : ''} | Mode: ${mode === 'probe' ? 'Probe' : 'Static'}`,
+  );
   lines.push('');
 
   const pages = report.nodes.filter((n): n is RouteNode => n.type === 'page');
@@ -99,14 +101,16 @@ export function generateMarkdown(report: TopologyReport): string {
   // Summary
   lines.push('## Summary');
   const total = pages.length + apis.length + middleware.length + externals.length;
-  lines.push(`- **${total} routes** (${pages.length} pages, ${apis.length} API, ${middleware.length} middleware, ${externals.length} external services)`);
+  lines.push(
+    `- **${total} routes** (${pages.length} pages, ${apis.length} API, ${middleware.length} middleware, ${externals.length} external services)`,
+  );
 
   if (mode === 'probe') {
     const allRoutes = [...pages, ...apis];
-    const ok = allRoutes.filter(n => n.probe?.status === 'ok').length;
-    const slow = allRoutes.filter(n => n.probe?.status === 'slow').length;
-    const errors = allRoutes.filter(n => n.probe?.status === 'error').length;
-    const notProbed = allRoutes.filter(n => !n.probe || n.probe.status === 'not-probed').length;
+    const ok = allRoutes.filter((n) => n.probe?.status === 'ok').length;
+    const slow = allRoutes.filter((n) => n.probe?.status === 'slow').length;
+    const errors = allRoutes.filter((n) => n.probe?.status === 'error').length;
+    const notProbed = allRoutes.filter((n) => !n.probe || n.probe.status === 'not-probed').length;
     lines.push(`- **${ok} OK**, ${slow} slow, ${errors} errors, ${notProbed} not probed`);
   }
 

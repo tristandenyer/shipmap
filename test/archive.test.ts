@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { join } from 'node:path';
-import { mkdtemp, rm, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { archiveReport, readLastReport, writeLastReport, readReportFromPath } from '../src/probe/cache.js';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { archiveReport, readLastReport, readReportFromPath, writeLastReport } from '../src/probe/cache.js';
 
 describe('report archival', () => {
   let tempDir: string;
@@ -34,7 +34,7 @@ describe('report archival', () => {
     for (let i = 0; i < 12; i++) {
       await archiveReport(tempDir, { ...fakeReport, i });
       // Small delay to ensure unique timestamps
-      await new Promise(r => setTimeout(r, 10));
+      await new Promise((r) => setTimeout(r, 10));
     }
 
     const historyDir = join(tempDir, '.shipmap', 'history');

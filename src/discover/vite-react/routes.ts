@@ -1,6 +1,7 @@
+import { randomUUID } from 'node:crypto';
+import type { Dirent } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
-import { randomUUID } from 'node:crypto';
 import type { RouteNode } from '../../types.js';
 
 export async function discoverRoutes(projectDir: string): Promise<RouteNode[]> {
@@ -68,13 +69,14 @@ function extractRoutesFromConfig(content: string): Array<{ path: string }> {
 
     // Extract route objects: { path: '...', ... }
     const routeObjectPattern = /\{\s*path\s*:\s*['"]([^'"]+)['"]/g;
-    let match;
+    let match: RegExpExecArray | null = routeObjectPattern.exec(configContent);
 
-    while ((match = routeObjectPattern.exec(configContent)) !== null) {
+    while (match !== null) {
       let path = match[1];
       // Normalize dynamic segments: :id -> [id]
       path = normalizeDynamicSegments(path);
       routes.push({ path });
+      match = routeObjectPattern.exec(configContent);
     }
   }
 
@@ -98,7 +100,7 @@ async function findFiles(dir: string, pattern: RegExp): Promise<string[]> {
   const results: string[] = [];
 
   async function walk(current: string) {
-    let entries;
+    let entries: Dirent[];
     try {
       entries = await readdir(current, { withFileTypes: true });
     } catch {

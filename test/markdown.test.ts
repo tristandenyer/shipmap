@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { generateMarkdown } from '../src/diff/markdown.js';
-import type { TopologyReport, RouteNode, MiddlewareNode, ExternalNode } from '../src/types.js';
+import type { ExternalNode, MiddlewareNode, RouteNode, TopologyReport } from '../src/types.js';
 
 function makeReport(overrides: Partial<TopologyReport> = {}): TopologyReport {
   return {
@@ -41,8 +41,13 @@ describe('generateMarkdown', () => {
 
   it('lists pages in static mode', () => {
     const page: RouteNode = {
-      id: 'p1', type: 'page', path: '/home', filePath: 'app/page.tsx',
-      group: '/', label: '/home', rendering: 'SSR',
+      id: 'p1',
+      type: 'page',
+      path: '/home',
+      filePath: 'app/page.tsx',
+      group: '/',
+      label: '/home',
+      rendering: 'SSR',
     };
     const md = generateMarkdown(makeReport({ nodes: [page] }));
 
@@ -55,8 +60,13 @@ describe('generateMarkdown', () => {
 
   it('lists pages in probe mode with status columns', () => {
     const page: RouteNode = {
-      id: 'p1', type: 'page', path: '/home', filePath: 'app/page.tsx',
-      group: '/', label: '/home', rendering: 'SSR',
+      id: 'p1',
+      type: 'page',
+      path: '/home',
+      filePath: 'app/page.tsx',
+      group: '/',
+      label: '/home',
+      rendering: 'SSR',
       probe: { status: 'ok', httpStatus: 200, responseTime: 50 },
     };
     const report = makeReport({ nodes: [page] });
@@ -70,8 +80,13 @@ describe('generateMarkdown', () => {
 
   it('lists API routes with methods', () => {
     const api: RouteNode = {
-      id: 'a1', type: 'api', path: '/api/users', filePath: 'app/api/users/route.ts',
-      group: '/api', label: '/api/users', methods: ['GET', 'POST'],
+      id: 'a1',
+      type: 'api',
+      path: '/api/users',
+      filePath: 'app/api/users/route.ts',
+      group: '/api',
+      label: '/api/users',
+      methods: ['GET', 'POST'],
     };
     const md = generateMarkdown(makeReport({ nodes: [api] }));
 
@@ -81,9 +96,14 @@ describe('generateMarkdown', () => {
 
   it('lists middleware', () => {
     const mw: MiddlewareNode = {
-      id: 'mw1', type: 'middleware', filePath: 'middleware.ts',
-      label: 'middleware', group: 'middleware',
-      matcherPatterns: ['/dashboard/:path*'], authProvider: 'NextAuth', runtime: 'edge',
+      id: 'mw1',
+      type: 'middleware',
+      filePath: 'middleware.ts',
+      label: 'middleware',
+      group: 'middleware',
+      matcherPatterns: ['/dashboard/:path*'],
+      authProvider: 'NextAuth',
+      runtime: 'edge',
     };
     const md = generateMarkdown(makeReport({ nodes: [mw] }));
 
@@ -95,9 +115,14 @@ describe('generateMarkdown', () => {
 
   it('lists external services', () => {
     const ext: ExternalNode = {
-      id: 'ext1', type: 'external', name: 'Stripe',
-      label: 'Stripe', group: 'external', host: 'api.stripe.com',
-      detectedFrom: 'env', referencedBy: ['/api/pay', '/api/webhook'],
+      id: 'ext1',
+      type: 'external',
+      name: 'Stripe',
+      label: 'Stripe',
+      group: 'external',
+      host: 'api.stripe.com',
+      detectedFrom: 'env',
+      referencedBy: ['/api/pay', '/api/webhook'],
     };
     const md = generateMarkdown(makeReport({ nodes: [ext] }));
 
@@ -108,8 +133,13 @@ describe('generateMarkdown', () => {
 
   it('includes summary section', () => {
     const page: RouteNode = {
-      id: 'p1', type: 'page', path: '/home', filePath: 'app/page.tsx',
-      group: '/', label: '/home', rendering: 'SSR',
+      id: 'p1',
+      type: 'page',
+      path: '/home',
+      filePath: 'app/page.tsx',
+      group: '/',
+      label: '/home',
+      rendering: 'SSR',
     };
     const md = generateMarkdown(makeReport({ nodes: [page] }));
 
@@ -118,12 +148,18 @@ describe('generateMarkdown', () => {
   });
 
   it('shows protected routes count in summary', () => {
-    const md = generateMarkdown(makeReport({
-      summary: {
-        totalRoutes: 1, totalApiRoutes: 0, totalMiddleware: 1,
-        totalExternals: 0, protectedRoutes: 3, renderingBreakdown: {},
-      },
-    }));
+    const md = generateMarkdown(
+      makeReport({
+        summary: {
+          totalRoutes: 1,
+          totalApiRoutes: 0,
+          totalMiddleware: 1,
+          totalExternals: 0,
+          protectedRoutes: 3,
+          renderingBreakdown: {},
+        },
+      }),
+    );
 
     expect(md).toContain('3 protected routes');
   });
@@ -131,12 +167,22 @@ describe('generateMarkdown', () => {
   it('shows probe summary in probe mode', () => {
     const pages: RouteNode[] = [
       {
-        id: 'p1', type: 'page', path: '/ok', filePath: 'a.tsx',
-        group: '/', label: '/ok', probe: { status: 'ok', httpStatus: 200, responseTime: 50 },
+        id: 'p1',
+        type: 'page',
+        path: '/ok',
+        filePath: 'a.tsx',
+        group: '/',
+        label: '/ok',
+        probe: { status: 'ok', httpStatus: 200, responseTime: 50 },
       },
       {
-        id: 'p2', type: 'page', path: '/err', filePath: 'b.tsx',
-        group: '/', label: '/err', probe: { status: 'error', httpStatus: 500, responseTime: 100 },
+        id: 'p2',
+        type: 'page',
+        path: '/err',
+        filePath: 'b.tsx',
+        group: '/',
+        label: '/err',
+        probe: { status: 'error', httpStatus: 500, responseTime: 100 },
       },
     ];
     const report = makeReport({ nodes: pages });

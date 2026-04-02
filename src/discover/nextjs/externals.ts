@@ -1,7 +1,7 @@
-import { readFile, readdir, stat } from 'node:fs/promises';
-import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import type { ExternalNode, Connector } from '../../types.js';
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import type { Connector, ExternalNode } from '../../types.js';
 
 interface ExternalServicePattern {
   name: string;
@@ -12,20 +12,44 @@ interface ExternalServicePattern {
 const SERVICE_PATTERNS: ExternalServicePattern[] = [
   // Payments
   { name: 'Stripe', envPrefixes: ['STRIPE_', 'VITE_STRIPE_'], importPatterns: ['stripe', '@stripe/stripe-js'] },
-  { name: 'PayPal', envPrefixes: ['PAYPAL_', 'VITE_PAYPAL_'], importPatterns: ['@paypal/react-paypal-js', '@paypal/checkout-server-sdk'] },
+  {
+    name: 'PayPal',
+    envPrefixes: ['PAYPAL_', 'VITE_PAYPAL_'],
+    importPatterns: ['@paypal/react-paypal-js', '@paypal/checkout-server-sdk'],
+  },
   { name: 'Square', envPrefixes: ['SQUARE_', 'VITE_SQUARE_'], importPatterns: ['square'] },
-  { name: 'Lemon Squeezy', envPrefixes: ['LEMONSQUEEZY_', 'LEMON_SQUEEZY_'], importPatterns: ['@lemonsqueezy/lemonsqueezy.js'] },
+  {
+    name: 'Lemon Squeezy',
+    envPrefixes: ['LEMONSQUEEZY_', 'LEMON_SQUEEZY_'],
+    importPatterns: ['@lemonsqueezy/lemonsqueezy.js'],
+  },
 
   // Auth
-  { name: 'Clerk', envPrefixes: ['CLERK_', 'NEXT_PUBLIC_CLERK_', 'VITE_CLERK_'], importPatterns: ['@clerk/nextjs', '@clerk/clerk-sdk-node'] },
+  {
+    name: 'Clerk',
+    envPrefixes: ['CLERK_', 'NEXT_PUBLIC_CLERK_', 'VITE_CLERK_'],
+    importPatterns: ['@clerk/nextjs', '@clerk/clerk-sdk-node'],
+  },
   { name: 'NextAuth', envPrefixes: ['NEXTAUTH_'], importPatterns: ['next-auth'] },
-  { name: 'Auth0', envPrefixes: ['AUTH0_', 'VITE_AUTH0_'], importPatterns: ['@auth0/nextjs-auth0', '@auth0/auth0-react', 'auth0'] },
+  {
+    name: 'Auth0',
+    envPrefixes: ['AUTH0_', 'VITE_AUTH0_'],
+    importPatterns: ['@auth0/nextjs-auth0', '@auth0/auth0-react', 'auth0'],
+  },
   { name: 'Lucia', envPrefixes: [], importPatterns: ['lucia'] },
   { name: 'Kinde', envPrefixes: ['KINDE_'], importPatterns: ['@kinde-oss/kinde-auth-nextjs'] },
 
   // Databases & ORMs
-  { name: 'Supabase', envPrefixes: ['SUPABASE_', 'NEXT_PUBLIC_SUPABASE_', 'VITE_SUPABASE_'], importPatterns: ['@supabase/supabase-js', '@supabase/ssr'] },
-  { name: 'Firebase', envPrefixes: ['FIREBASE_', 'NEXT_PUBLIC_FIREBASE_', 'VITE_FIREBASE_'], importPatterns: ['firebase', 'firebase-admin'] },
+  {
+    name: 'Supabase',
+    envPrefixes: ['SUPABASE_', 'NEXT_PUBLIC_SUPABASE_', 'VITE_SUPABASE_'],
+    importPatterns: ['@supabase/supabase-js', '@supabase/ssr'],
+  },
+  {
+    name: 'Firebase',
+    envPrefixes: ['FIREBASE_', 'NEXT_PUBLIC_FIREBASE_', 'VITE_FIREBASE_'],
+    importPatterns: ['firebase', 'firebase-admin'],
+  },
   { name: 'Prisma', envPrefixes: [], importPatterns: ['@prisma/client'] },
   { name: 'Drizzle', envPrefixes: [], importPatterns: ['drizzle-orm'] },
   { name: 'MongoDB', envPrefixes: ['MONGODB_', 'MONGO_'], importPatterns: ['mongodb', 'mongoose'] },
@@ -34,7 +58,11 @@ const SERVICE_PATTERNS: ExternalServicePattern[] = [
   { name: 'Neon', envPrefixes: ['NEON_'], importPatterns: ['@neondatabase/serverless'] },
   { name: 'Convex', envPrefixes: ['CONVEX_', 'NEXT_PUBLIC_CONVEX_', 'VITE_CONVEX_'], importPatterns: ['convex'] },
   { name: 'FaunaDB', envPrefixes: ['FAUNA_', 'FAUNADB_'], importPatterns: ['faunadb', 'fauna'] },
-  { name: 'Redis', envPrefixes: ['REDIS_', 'VITE_REDIS_', 'UPSTASH_REDIS_'], importPatterns: ['ioredis', 'redis', '@upstash/redis'] },
+  {
+    name: 'Redis',
+    envPrefixes: ['REDIS_', 'VITE_REDIS_', 'UPSTASH_REDIS_'],
+    importPatterns: ['ioredis', 'redis', '@upstash/redis'],
+  },
 
   // AI
   { name: 'OpenAI', envPrefixes: ['OPENAI_', 'VITE_OPENAI_'], importPatterns: ['openai'] },
@@ -54,7 +82,11 @@ const SERVICE_PATTERNS: ExternalServicePattern[] = [
 
   // Messaging & realtime
   { name: 'Twilio', envPrefixes: ['TWILIO_', 'VITE_TWILIO_'], importPatterns: ['twilio'] },
-  { name: 'Pusher', envPrefixes: ['PUSHER_', 'NEXT_PUBLIC_PUSHER_', 'VITE_PUSHER_'], importPatterns: ['pusher', 'pusher-js'] },
+  {
+    name: 'Pusher',
+    envPrefixes: ['PUSHER_', 'NEXT_PUBLIC_PUSHER_', 'VITE_PUSHER_'],
+    importPatterns: ['pusher', 'pusher-js'],
+  },
   { name: 'Ably', envPrefixes: ['ABLY_', 'VITE_ABLY_'], importPatterns: ['ably'] },
 
   // Cloud & infra
@@ -64,17 +96,33 @@ const SERVICE_PATTERNS: ExternalServicePattern[] = [
   { name: 'Vercel', envPrefixes: ['VERCEL_', 'VITE_VERCEL_'], importPatterns: ['@vercel/'] },
 
   // Monitoring & analytics
-  { name: 'Sentry', envPrefixes: ['SENTRY_', 'NEXT_PUBLIC_SENTRY_', 'VITE_SENTRY_'], importPatterns: ['@sentry/nextjs', '@sentry/node', '@sentry/browser'] },
+  {
+    name: 'Sentry',
+    envPrefixes: ['SENTRY_', 'NEXT_PUBLIC_SENTRY_', 'VITE_SENTRY_'],
+    importPatterns: ['@sentry/nextjs', '@sentry/node', '@sentry/browser'],
+  },
   { name: 'Datadog', envPrefixes: ['DD_', 'DATADOG_'], importPatterns: ['dd-trace', '@datadog/browser-rum'] },
   { name: 'LogRocket', envPrefixes: ['LOGROCKET_', 'NEXT_PUBLIC_LOGROCKET_'], importPatterns: ['logrocket'] },
-  { name: 'PostHog', envPrefixes: ['POSTHOG_', 'NEXT_PUBLIC_POSTHOG_', 'VITE_POSTHOG_'], importPatterns: ['posthog-js', 'posthog-node'] },
+  {
+    name: 'PostHog',
+    envPrefixes: ['POSTHOG_', 'NEXT_PUBLIC_POSTHOG_', 'VITE_POSTHOG_'],
+    importPatterns: ['posthog-js', 'posthog-node'],
+  },
 
   // Search
-  { name: 'Algolia', envPrefixes: ['ALGOLIA_', 'NEXT_PUBLIC_ALGOLIA_', 'VITE_ALGOLIA_'], importPatterns: ['algoliasearch', 'react-instantsearch'] },
+  {
+    name: 'Algolia',
+    envPrefixes: ['ALGOLIA_', 'NEXT_PUBLIC_ALGOLIA_', 'VITE_ALGOLIA_'],
+    importPatterns: ['algoliasearch', 'react-instantsearch'],
+  },
   { name: 'Meilisearch', envPrefixes: ['MEILISEARCH_', 'MEILI_'], importPatterns: ['meilisearch'] },
 
   // CMS
-  { name: 'Sanity', envPrefixes: ['SANITY_', 'NEXT_PUBLIC_SANITY_', 'VITE_SANITY_'], importPatterns: ['@sanity/client', 'next-sanity'] },
+  {
+    name: 'Sanity',
+    envPrefixes: ['SANITY_', 'NEXT_PUBLIC_SANITY_', 'VITE_SANITY_'],
+    importPatterns: ['@sanity/client', 'next-sanity'],
+  },
   { name: 'Contentful', envPrefixes: ['CONTENTFUL_', 'VITE_CONTENTFUL_'], importPatterns: ['contentful'] },
   { name: 'Strapi', envPrefixes: ['STRAPI_', 'VITE_STRAPI_'], importPatterns: ['@strapi/strapi'] },
 
@@ -84,8 +132,8 @@ const SERVICE_PATTERNS: ExternalServicePattern[] = [
   { name: 'Discord', envPrefixes: ['DISCORD_'], importPatterns: ['discord.js'] },
 ];
 
-export { SERVICE_PATTERNS };
 export type { ExternalServicePattern };
+export { SERVICE_PATTERNS };
 
 interface ExternalsResult {
   nodes: ExternalNode[];

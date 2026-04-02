@@ -41,7 +41,7 @@ function parseIpv4(ip: string): number[] | null {
   const parts = ip.split('.');
   if (parts.length !== 4) return null;
   const octets = parts.map(Number);
-  if (octets.some((o) => isNaN(o) || o < 0 || o > 255)) return null;
+  if (octets.some((o) => Number.isNaN(o) || o < 0 || o > 255)) return null;
   return octets;
 }
 
@@ -81,10 +81,7 @@ function isIpv6Loopback(ip: string): boolean {
   return ip === '::1';
 }
 
-function classifyIpv4(
-  octets: number[],
-  options: NetworkSafetyOptions,
-): ValidationResult {
+function classifyIpv4(octets: number[], options: NetworkSafetyOptions): ValidationResult {
   if (isLoopbackV4(octets)) {
     return { valid: true };
   }
@@ -125,10 +122,7 @@ function classifyIpv6(ip: string, options: NetworkSafetyOptions): ValidationResu
   return { valid: true };
 }
 
-export async function validateProbeUrl(
-  url: string,
-  options: NetworkSafetyOptions = {},
-): Promise<ValidationResult> {
+export async function validateProbeUrl(url: string, options: NetworkSafetyOptions = {}): Promise<ValidationResult> {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -137,7 +131,8 @@ export async function validateProbeUrl(
   }
 
   const hostname = parsed.hostname;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]';
+  const isLocalhost =
+    hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]';
 
   // Classify IP first — IP-based blocks (metadata, private) take priority over protocol checks
   const v4 = parseIpv4(hostname);

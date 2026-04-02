@@ -1,7 +1,8 @@
-import { readdir, stat, readFile } from 'node:fs/promises';
-import { join, relative } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import type { RouteNode, RenderingStrategy } from '../../types.js';
+import type { Dirent } from 'node:fs';
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { join, relative } from 'node:path';
+import type { RenderingStrategy, RouteNode } from '../../types.js';
 
 export async function discoverRoutes(projectDir: string): Promise<RouteNode[]> {
   const nodeMap = new Map<string, RouteNode>();
@@ -126,7 +127,6 @@ function flatRouteToPath(relPath: string): string {
     }
     // _layout becomes nothing (pathless layout)
     else if (segment.startsWith('_')) {
-      continue;
     }
     // Regular segment
     else {
@@ -138,7 +138,7 @@ function flatRouteToPath(relPath: string): string {
     return '/';
   }
 
-  return '/' + routeSegments.join('/');
+  return `/${routeSegments.join('/')}`;
 }
 
 async function detectRenderingStrategy(filePath: string): Promise<RenderingStrategy> {
@@ -166,7 +166,7 @@ async function detectRenderingStrategy(filePath: string): Promise<RenderingStrat
   return 'Static';
 }
 
-function computeGroupWithFileContext(routePath: string, relPath: string, fileNames: Set<string>): string {
+function computeGroupWithFileContext(routePath: string, _relPath: string, fileNames: Set<string>): string {
   if (routePath === '/') return 'root';
   const segments = routePath.split('/').filter(Boolean);
   if (segments.length === 0) return 'root';
@@ -178,7 +178,7 @@ function computeGroupWithFileContext(routePath: string, relPath: string, fileNam
     // (indicating nested routes like dashboard.settings.tsx under dashboard.tsx)
     const hasNestedRoutes = Array.from(fileNames).some((file) => {
       const fileName = file.replace(/\.(tsx?|jsx?)$/, '');
-      return fileName.startsWith(segment + '.');
+      return fileName.startsWith(`${segment}.`);
     });
 
     if (hasNestedRoutes) {
@@ -197,7 +197,7 @@ async function findRouteFiles(dir: string): Promise<string[]> {
   const extensions = /\.(tsx?|jsx?)$/;
 
   async function walk(current: string) {
-    let entries;
+    let entries: Dirent[];
     try {
       entries = await readdir(current, { withFileTypes: true });
     } catch {

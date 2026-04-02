@@ -1,7 +1,8 @@
+import { randomUUID } from 'node:crypto';
+import type { Dirent } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import type { RouteNode, HttpMethod } from '../../types.js';
+import type { HttpMethod, RouteNode } from '../../types.js';
 import { computeGroup } from './routes.js';
 
 export async function discoverApiRoutes(projectDir: string): Promise<RouteNode[]> {
@@ -59,11 +60,7 @@ async function scanAppRouterApi(projectDir: string, appDir: string): Promise<Rou
   return nodes;
 }
 
-async function scanPagesRouterApi(
-  projectDir: string,
-  pagesBase: string,
-  apiDir: string,
-): Promise<RouteNode[]> {
+async function scanPagesRouterApi(projectDir: string, pagesBase: string, apiDir: string): Promise<RouteNode[]> {
   const nodes: RouteNode[] = [];
   const extensions = /\.(tsx?|jsx?|js)$/;
   const allFiles = await findFiles(apiDir, extensions);
@@ -71,7 +68,12 @@ async function scanPagesRouterApi(
   for (const filePath of allFiles) {
     const relPath = relative(pagesBase, filePath);
     const name = relPath.replace(extensions, '');
-    const routePath = '/' + name.split(sep).join('/').replace(/\/index$/, '');
+    const routePath =
+      '/' +
+      name
+        .split(sep)
+        .join('/')
+        .replace(/\/index$/, '');
     const relFromProject = relative(projectDir, filePath);
     const methods = await detectPagesApiMethods(filePath);
 
@@ -103,7 +105,7 @@ function appRouterApiPathToRoute(relPath: string): string {
   }
 
   if (routeSegments.length === 0) return '/';
-  return '/' + routeSegments.join('/');
+  return `/${routeSegments.join('/')}`;
 }
 
 async function detectHttpMethods(filePath: string): Promise<HttpMethod[]> {
@@ -119,9 +121,7 @@ async function detectHttpMethods(filePath: string): Promise<HttpMethod[]> {
 
   for (const method of httpMethods) {
     // Match: export async function GET, export function GET, export const GET
-    const pattern = new RegExp(
-      `export\\s+(?:async\\s+)?(?:function|const)\\s+${method}\\b`,
-    );
+    const pattern = new RegExp(`export\\s+(?:async\\s+)?(?:function|const)\\s+${method}\\b`);
     if (pattern.test(content)) {
       methods.push(method);
     }
@@ -156,7 +156,7 @@ async function findFiles(dir: string, pattern: RegExp): Promise<string[]> {
   const results: string[] = [];
 
   async function walk(current: string) {
-    let entries;
+    let entries: Dirent[];
     try {
       entries = await readdir(current, { withFileTypes: true });
     } catch {

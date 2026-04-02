@@ -1,7 +1,8 @@
+import { randomUUID } from 'node:crypto';
+import type { Dirent } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import type { RouteNode, RenderingStrategy } from '../../types.js';
+import type { RenderingStrategy, RouteNode } from '../../types.js';
 
 export async function discoverPageRoutes(projectDir: string): Promise<RouteNode[]> {
   const nodes: RouteNode[] = [];
@@ -36,7 +37,7 @@ async function findPageFiles(routesDir: string): Promise<string[]> {
   const results: string[] = [];
 
   async function walk(current: string) {
-    let entries;
+    let entries: Dirent[];
     try {
       entries = await readdir(current, { withFileTypes: true });
     } catch {
@@ -66,7 +67,7 @@ async function findPageFiles(routesDir: string): Promise<string[]> {
 
 function pageFilePathToRoute(relPath: string): string {
   // Remove +page.svelte filename (handle both with and without leading slash)
-  let dir = relPath.replace(/[/\\]?\+page\.svelte$/, '');
+  const dir = relPath.replace(/[/\\]?\+page\.svelte$/, '');
 
   // Handle root case
   if (!dir) return '/';
@@ -82,7 +83,7 @@ function pageFilePathToRoute(relPath: string): string {
   }
 
   if (routeSegments.length === 0) return '/';
-  return '/' + routeSegments.join('/');
+  return `/${routeSegments.join('/')}`;
 }
 
 export function computeGroup(routePath: string): string {
@@ -93,10 +94,7 @@ export function computeGroup(routePath: string): string {
   return segments[0];
 }
 
-async function detectRenderingStrategy(
-  routesDir: string,
-  pageRelPath: string,
-): Promise<RenderingStrategy> {
+async function detectRenderingStrategy(routesDir: string, pageRelPath: string): Promise<RenderingStrategy> {
   // Get directory containing the +page.svelte
   const pageDir = pageRelPath.replace(/[/\\]\+page\.svelte$/, '');
   const dirPath = pageDir ? join(routesDir, pageDir) : routesDir;
@@ -105,8 +103,8 @@ async function detectRenderingStrategy(
 
   // Check for +page.server.ts with load export (SSR)
   if (dirContent.has('+page.server.ts') || dirContent.has('+page.server.js')) {
-    const content = await tryReadFile(join(dirPath, '+page.server.ts')) ||
-      await tryReadFile(join(dirPath, '+page.server.js'));
+    const content =
+      (await tryReadFile(join(dirPath, '+page.server.ts'))) || (await tryReadFile(join(dirPath, '+page.server.js')));
     if (content && /export\s+(?:async\s+)?function\s+load|export\s+const\s+load/.test(content)) {
       return 'SSR';
     }
@@ -114,8 +112,7 @@ async function detectRenderingStrategy(
 
   // Check for +page.ts with load export (universal load, SSR)
   if (dirContent.has('+page.ts') || dirContent.has('+page.js')) {
-    const content = await tryReadFile(join(dirPath, '+page.ts')) ||
-      await tryReadFile(join(dirPath, '+page.js'));
+    const content = (await tryReadFile(join(dirPath, '+page.ts'))) || (await tryReadFile(join(dirPath, '+page.js')));
     if (content) {
       if (/export\s+(?:async\s+)?function\s+load|export\s+const\s+load/.test(content)) {
         return 'SSR';
@@ -133,8 +130,8 @@ async function detectRenderingStrategy(
 
   // Check for prerender in +page.server.ts
   if (dirContent.has('+page.server.ts') || dirContent.has('+page.server.js')) {
-    const content = await tryReadFile(join(dirPath, '+page.server.ts')) ||
-      await tryReadFile(join(dirPath, '+page.server.js'));
+    const content =
+      (await tryReadFile(join(dirPath, '+page.server.ts'))) || (await tryReadFile(join(dirPath, '+page.server.js')));
     if (content && /export\s+const\s+prerender\s*=\s*true/.test(content)) {
       return 'SSG';
     }

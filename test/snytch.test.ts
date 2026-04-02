@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { writeFile, mkdir, rm } from 'node:fs/promises';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loadSnytchResults } from '../src/snytch/index.js';
 
 const tmpDir = join(__dirname, 'tmp-snytch-test');
@@ -39,10 +39,7 @@ describe('loadSnytchResults', () => {
         message: 'Private key detected',
       },
     ];
-    await writeFile(
-      join(tmpDir, '.snytch', 'scan-results.json'),
-      JSON.stringify({ findings })
-    );
+    await writeFile(join(tmpDir, '.snytch', 'scan-results.json'), JSON.stringify({ findings }));
 
     const result = await loadSnytchResults(tmpDir);
     expect(result).not.toBeNull();
@@ -63,10 +60,7 @@ describe('loadSnytchResults', () => {
         message: 'Database password found',
       },
     ];
-    await writeFile(
-      join(tmpDir, 'snytch-report.json'),
-      JSON.stringify({ findings })
-    );
+    await writeFile(join(tmpDir, 'snytch-report.json'), JSON.stringify({ findings }));
 
     const result = await loadSnytchResults(tmpDir);
     expect(result).not.toBeNull();
@@ -80,10 +74,7 @@ describe('loadSnytchResults', () => {
       { file: 'src/routes/api.ts', type: 'key', severity: 'medium' },
       { file: 'src/routes/auth.ts', type: 'token', severity: 'critical' },
     ];
-    await writeFile(
-      join(tmpDir, 'snytch-report.json'),
-      JSON.stringify({ findings })
-    );
+    await writeFile(join(tmpDir, 'snytch-report.json'), JSON.stringify({ findings }));
 
     const result = await loadSnytchResults(tmpDir);
     expect(result!.routeFindings.size).toBe(2);
@@ -99,10 +90,7 @@ describe('loadSnytchResults', () => {
   });
 
   it('handles missing findings array gracefully', async () => {
-    await writeFile(
-      join(tmpDir, 'snytch-report.json'),
-      JSON.stringify({ data: [] })
-    );
+    await writeFile(join(tmpDir, 'snytch-report.json'), JSON.stringify({ data: [] }));
 
     const result = await loadSnytchResults(tmpDir);
     expect(result).toBeNull();
@@ -115,10 +103,7 @@ describe('loadSnytchResults', () => {
       { file: 'src/c.ts', type: 't3', severity: 'low' },
       { file: 'src/d.ts', type: 't4', severity: 'critical' },
     ];
-    await writeFile(
-      join(tmpDir, 'snytch-report.json'),
-      JSON.stringify({ findings })
-    );
+    await writeFile(join(tmpDir, 'snytch-report.json'), JSON.stringify({ findings }));
 
     const result = await loadSnytchResults(tmpDir);
     expect(result!.totalFindings).toBe(4);
@@ -126,26 +111,16 @@ describe('loadSnytchResults', () => {
   });
 
   it('uses file field when filePath not present', async () => {
-    const findings = [
-      { file: 'src/test.ts', type: 'secret', severity: 'high' },
-    ];
-    await writeFile(
-      join(tmpDir, 'snytch-report.json'),
-      JSON.stringify({ findings })
-    );
+    const findings = [{ file: 'src/test.ts', type: 'secret', severity: 'high' }];
+    await writeFile(join(tmpDir, 'snytch-report.json'), JSON.stringify({ findings }));
 
     const result = await loadSnytchResults(tmpDir);
     expect(result!.findings[0].filePath).toBe('src/test.ts');
   });
 
   it('defaults missing severity to medium', async () => {
-    const findings = [
-      { file: 'src/test.ts', type: 'secret' },
-    ];
-    await writeFile(
-      join(tmpDir, 'snytch-report.json'),
-      JSON.stringify({ findings })
-    );
+    const findings = [{ file: 'src/test.ts', type: 'secret' }];
+    await writeFile(join(tmpDir, 'snytch-report.json'), JSON.stringify({ findings }));
 
     const result = await loadSnytchResults(tmpDir);
     expect(result!.findings[0].severity).toBe('medium');
@@ -154,21 +129,11 @@ describe('loadSnytchResults', () => {
   it('prefers .snytch/scan-results.json over snytch-report.json', async () => {
     await mkdir(join(tmpDir, '.snytch'), { recursive: true });
 
-    const findings1 = [
-      { file: 'src/scan-results.ts', type: 'secret', severity: 'high' },
-    ];
-    await writeFile(
-      join(tmpDir, '.snytch', 'scan-results.json'),
-      JSON.stringify({ findings: findings1 })
-    );
+    const findings1 = [{ file: 'src/scan-results.ts', type: 'secret', severity: 'high' }];
+    await writeFile(join(tmpDir, '.snytch', 'scan-results.json'), JSON.stringify({ findings: findings1 }));
 
-    const findings2 = [
-      { file: 'src/report.ts', type: 'secret', severity: 'high' },
-    ];
-    await writeFile(
-      join(tmpDir, 'snytch-report.json'),
-      JSON.stringify({ findings: findings2 })
-    );
+    const findings2 = [{ file: 'src/report.ts', type: 'secret', severity: 'high' }];
+    await writeFile(join(tmpDir, 'snytch-report.json'), JSON.stringify({ findings: findings2 }));
 
     const result = await loadSnytchResults(tmpDir);
     expect(result!.findings[0].filePath).toBe('src/scan-results.ts');

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
 import { discoverExternals } from '../src/discover/nextjs/externals.js';
 
 const fixtures = join(__dirname, 'fixtures');
@@ -8,32 +8,26 @@ describe('discoverExternals', () => {
   it('detects services from env vars', async () => {
     const routeFiles = new Map<string, string>();
     const result = await discoverExternals(join(fixtures, 'nextjs-app-router'), routeFiles);
-    const names = result.nodes.map(n => n.name);
+    const names = result.nodes.map((n) => n.name);
     expect(names).toContain('Supabase');
     expect(names).toContain('Stripe');
     expect(names).toContain('PostgreSQL');
   });
 
   it('detects services from imports', async () => {
-    const routeFiles = new Map([
-      ['app/api/users/route.ts', 'users-route-id'],
-    ]);
+    const routeFiles = new Map([['app/api/users/route.ts', 'users-route-id']]);
     const result = await discoverExternals(join(fixtures, 'nextjs-app-router'), routeFiles);
-    const supabase = result.nodes.find(n => n.name === 'Supabase');
+    const supabase = result.nodes.find((n) => n.name === 'Supabase');
     expect(supabase).toBeTruthy();
     expect(supabase!.detectedFrom).toBe('both'); // env + import
   });
 
   it('creates connectors from routes to externals', async () => {
-    const routeFiles = new Map([
-      ['app/api/users/route.ts', 'users-route-id'],
-    ]);
+    const routeFiles = new Map([['app/api/users/route.ts', 'users-route-id']]);
     const result = await discoverExternals(join(fixtures, 'nextjs-app-router'), routeFiles);
-    const supabaseNode = result.nodes.find(n => n.name === 'Supabase');
+    const supabaseNode = result.nodes.find((n) => n.name === 'Supabase');
     if (supabaseNode) {
-      const conn = result.connectors.find(
-        c => c.target === supabaseNode.id && c.source === 'users-route-id',
-      );
+      const conn = result.connectors.find((c) => c.target === supabaseNode.id && c.source === 'users-route-id');
       expect(conn).toBeTruthy();
       expect(conn!.type).toBe('external-dependency');
     }

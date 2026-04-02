@@ -1,7 +1,8 @@
-import { readdir, stat } from 'node:fs/promises';
-import { join, relative, extname } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import type { RouteNode, HttpMethod } from '../../types.js';
+import type { Dirent } from 'node:fs';
+import { readdir } from 'node:fs/promises';
+import { extname, join, relative } from 'node:path';
+import type { HttpMethod, RouteNode } from '../../types.js';
 
 const API_DIRS = ['api', 'server/api', 'src/api'];
 
@@ -65,7 +66,7 @@ function filePathToApiPath(filePath: string, baseDir: string): string {
 
 export function computeGroup(apiPath: string): string {
   // Group API routes by first segment after /api/
-  const segments = apiPath.split('/').filter((s, i) => i > 1); // Skip empty and 'api'
+  const segments = apiPath.split('/').filter((_s, i) => i > 1); // Skip empty and 'api'
   if (segments.length === 0) return 'api';
   return segments[0];
 }
@@ -74,7 +75,7 @@ async function findFilesInDir(dir: string): Promise<string[]> {
   const results: string[] = [];
 
   async function walk(current: string) {
-    let entries;
+    let entries: Dirent[];
     try {
       entries = await readdir(current, { withFileTypes: true });
     } catch {

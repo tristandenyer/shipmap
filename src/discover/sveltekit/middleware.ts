@@ -1,7 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import type { MiddlewareNode, Connector } from '../../types.js';
+import type { Connector, MiddlewareNode } from '../../types.js';
 
 interface MiddlewareResult {
   node: MiddlewareNode;

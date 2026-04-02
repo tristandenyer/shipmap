@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { writeFile, mkdir, rm } from 'node:fs/promises';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config.js';
 
 describe('ShipmapConfig extended fields', () => {
@@ -97,9 +97,7 @@ export default {
 };
 `;
     await writeFile(join(tmpDir, 'shipmap.config.js'), configCode);
-    await expect(loadConfig(tmpDir)).rejects.toThrow(
-      'Invalid shipmap config: discovery.exclude must be an array'
-    );
+    await expect(loadConfig(tmpDir)).rejects.toThrow('Invalid shipmap config: discovery.exclude must be an array');
   });
 
   it('throws error when discovery is not an object', async () => {
@@ -109,9 +107,7 @@ export default {
 };
 `;
     await writeFile(join(tmpDir, 'shipmap.config.js'), configCode);
-    await expect(loadConfig(tmpDir)).rejects.toThrow(
-      'Invalid shipmap config: discovery must be an object'
-    );
+    await expect(loadConfig(tmpDir)).rejects.toThrow('Invalid shipmap config: discovery must be an object');
   });
 
   it('throws error when groups values are invalid', async () => {
@@ -123,9 +119,7 @@ export default {
 };
 `;
     await writeFile(join(tmpDir, 'shipmap.config.js'), configCode);
-    await expect(loadConfig(tmpDir)).rejects.toThrow(
-      'Invalid shipmap config: groups values must be strings or arrays'
-    );
+    await expect(loadConfig(tmpDir)).rejects.toThrow('Invalid shipmap config: groups values must be strings or arrays');
   });
 
   it('throws error when groups array contains non-strings', async () => {
@@ -138,7 +132,7 @@ export default {
 `;
     await writeFile(join(tmpDir, 'shipmap.config.js'), configCode);
     await expect(loadConfig(tmpDir)).rejects.toThrow(
-      'Invalid shipmap config: groups array values must contain only strings'
+      'Invalid shipmap config: groups array values must contain only strings',
     );
   });
 
@@ -151,9 +145,7 @@ export default {
 };
 `;
     await writeFile(join(tmpDir, 'shipmap.config.js'), configCode);
-    await expect(loadConfig(tmpDir)).rejects.toThrow(
-      'Invalid shipmap config: ci.failOn must be an array'
-    );
+    await expect(loadConfig(tmpDir)).rejects.toThrow('Invalid shipmap config: ci.failOn must be an array');
   });
 
   it('throws error when ci.slowThreshold is not a number', async () => {
@@ -165,9 +157,7 @@ export default {
 };
 `;
     await writeFile(join(tmpDir, 'shipmap.config.js'), configCode);
-    await expect(loadConfig(tmpDir)).rejects.toThrow(
-      'Invalid shipmap config: ci.slowThreshold must be a number'
-    );
+    await expect(loadConfig(tmpDir)).rejects.toThrow('Invalid shipmap config: ci.slowThreshold must be a number');
   });
 
   it('throws error when ci.allowUnprotected is not an array', async () => {
@@ -179,9 +169,7 @@ export default {
 };
 `;
     await writeFile(join(tmpDir, 'shipmap.config.js'), configCode);
-    await expect(loadConfig(tmpDir)).rejects.toThrow(
-      'Invalid shipmap config: ci.allowUnprotected must be an array'
-    );
+    await expect(loadConfig(tmpDir)).rejects.toThrow('Invalid shipmap config: ci.allowUnprotected must be an array');
   });
 
   it('throws error when ci is not an object', async () => {
@@ -191,8 +179,6 @@ export default {
 };
 `;
     await writeFile(join(tmpDir, 'shipmap.config.js'), configCode);
-    await expect(loadConfig(tmpDir)).rejects.toThrow(
-      'Invalid shipmap config: ci must be an object'
-    );
+    await expect(loadConfig(tmpDir)).rejects.toThrow('Invalid shipmap config: ci must be an object');
   });
 });

@@ -1,7 +1,7 @@
-import { readFile, readdir, stat } from 'node:fs/promises';
-import { join, relative, extname } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import type { RouteNode, HttpMethod } from '../../types.js';
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { extname, join, relative } from 'node:path';
+import type { HttpMethod, RouteNode } from '../../types.js';
 
 const HTTP_METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
 
@@ -56,7 +56,7 @@ function tsFilePathToRoute(relPath: string): string {
 
   // Ensure leading slash
   if (!route.startsWith('/')) {
-    route = '/' + route;
+    route = `/${route}`;
   }
 
   return route;
@@ -78,7 +78,7 @@ function detectHttpMethods(content: string): HttpMethod[] {
       new RegExp(`export\\s+function\\s+${method}\\s*\\(`),
     ];
 
-    if (patterns.some(p => p.test(content))) {
+    if (patterns.some((p) => p.test(content))) {
       methods.push(method);
     }
   }

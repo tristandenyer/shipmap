@@ -1,7 +1,8 @@
+import { randomUUID } from 'node:crypto';
+import type { Dirent } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import type { RouteNode, HttpMethod } from '../../types.js';
+import type { HttpMethod, RouteNode } from '../../types.js';
 import { computeGroup } from './routes.js';
 
 export async function discoverApiRoutes(projectDir: string): Promise<RouteNode[]> {
@@ -37,7 +38,7 @@ async function findServerFiles(routesDir: string): Promise<string[]> {
   const results: string[] = [];
 
   async function walk(current: string) {
-    let entries;
+    let entries: Dirent[];
     try {
       entries = await readdir(current, { withFileTypes: true });
     } catch {
@@ -67,7 +68,7 @@ async function findServerFiles(routesDir: string): Promise<string[]> {
 
 function serverFilePathToRoute(relPath: string): string {
   // Remove +server.ts filename (handle both with and without leading slash)
-  let dir = relPath.replace(/[/\\]?\+server\.(ts|js)$/, '');
+  const dir = relPath.replace(/[/\\]?\+server\.(ts|js)$/, '');
 
   // Handle root case
   if (!dir) return '/';
@@ -83,7 +84,7 @@ function serverFilePathToRoute(relPath: string): string {
   }
 
   if (routeSegments.length === 0) return '/';
-  return '/' + routeSegments.join('/');
+  return `/${routeSegments.join('/')}`;
 }
 
 async function extractHttpMethods(filePath: string): Promise<HttpMethod[]> {

@@ -1,9 +1,9 @@
-import { readFile, readdir, stat } from 'node:fs/promises';
-import { join, relative, basename } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import type { RouteNode, MiddlewareNode, Connector, HttpMethod } from '../../types.js';
-import type { FrameworkDiscoverer, MiddlewareResult } from '../types.js';
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { basename, join, relative } from 'node:path';
+import type { Connector, HttpMethod, MiddlewareNode, RouteNode } from '../../types.js';
 import { discoverExternals } from '../nextjs/externals.js';
+import type { FrameworkDiscoverer, MiddlewareResult } from '../types.js';
 
 interface FileRoute {
   filePath: string;
@@ -12,160 +12,161 @@ interface FileRoute {
 }
 
 async function discoverRoutes(projectDir: string): Promise<RouteNode[]> {
-    const pagesDir = join(projectDir, 'pages');
-    const routes: RouteNode[] = [];
-    const fileRoutes = new Map<string, string>(); // filePath → node ID
+  const pagesDir = join(projectDir, 'pages');
+  const routes: RouteNode[] = [];
+  const fileRoutes = new Map<string, string>(); // filePath → node ID
 
-    // Check if pages directory exists
-    if (!(await dirExists(pagesDir))) {
-      return routes;
-    }
-
-    // Check if global SSR is disabled in nuxt.config
-    const globalSPAMode = await isGlobalSPAMode(projectDir);
-
-    // Collect all route files
-    const fileRoutesList = await collectRouteFiles(pagesDir, projectDir);
-
-    for (const fileRoute of fileRoutesList) {
-      const nodeId = randomUUID();
-      fileRoutes.set(fileRoute.filePath, nodeId);
-
-      // Determine rendering strategy
-      let rendering: 'SSR' | 'Client' = 'SSR';
-      if (globalSPAMode || fileRoute.isClientOnly) {
-        rendering = 'Client';
-      }
-
-      // Extract group (first path segment)
-      const pathSegments = fileRoute.path.split('/').filter(Boolean);
-      const group = pathSegments.length > 0 ? pathSegments[0] : 'root';
-
-      const route: RouteNode = {
-        id: nodeId,
-        type: 'page',
-        path: fileRoute.path,
-        filePath: fileRoute.filePath,
-        group,
-        label: basename(fileRoute.filePath, '.vue'),
-        rendering,
-      };
-
-      routes.push(route);
-    }
-
+  // Check if pages directory exists
+  if (!(await dirExists(pagesDir))) {
     return routes;
   }
 
-async function discoverApiRoutes(projectDir: string): Promise<RouteNode[]> {
-    const apiDir = join(projectDir, 'server', 'api');
-    const routes: RouteNode[] = [];
+  // Check if global SSR is disabled in nuxt.config
+  const globalSPAMode = await isGlobalSPAMode(projectDir);
 
-    // Check if server/api directory exists
-    if (!(await dirExists(apiDir))) {
-      return routes;
-    }
+  // Collect all route files
+  const fileRoutesList = await collectRouteFiles(pagesDir, projectDir);
 
-    const apiRoutes = await collectApiRouteFiles(apiDir, projectDir);
-
-    for (const apiRoute of apiRoutes) {
-      const nodeId = randomUUID();
-
-      // Extract group (first path segment, or 'api' for root)
-      const pathSegments = apiRoute.path.split('/').filter(Boolean);
-      const group = pathSegments.length > 1 ? pathSegments[0] : 'api';
-
-      const route: RouteNode = {
-        id: nodeId,
-        type: 'api',
-        path: apiRoute.path,
-        filePath: apiRoute.filePath,
-        group,
-        label: basename(apiRoute.filePath),
-        methods: apiRoute.methods as HttpMethod[],
-      };
-
-      routes.push(route);
-    }
-
-    return routes;
-  }
-
-async function discoverMiddleware(projectDir: string, routeNodeIds: Map<string, string>): Promise<MiddlewareResult | null> {
-    // Check server/middleware first, then middleware
-    const serverMiddlewarePath = join(projectDir, 'server', 'middleware');
-    const routeMiddlewarePath = join(projectDir, 'middleware');
-
-    let middlewarePath: string | null = null;
-    let middlewareFile: string | null = null;
-
-    if (await dirExists(serverMiddlewarePath)) {
-      const files = await readdir(serverMiddlewarePath);
-      for (const file of files) {
-        if (file.endsWith('.ts') || file.endsWith('.js')) {
-          middlewareFile = file;
-          middlewarePath = join(serverMiddlewarePath, file);
-          break;
-        }
-      }
-    }
-
-    if (!middlewarePath && (await dirExists(routeMiddlewarePath))) {
-      const files = await readdir(routeMiddlewarePath);
-      for (const file of files) {
-        if (file.endsWith('.ts') || file.endsWith('.js')) {
-          middlewareFile = file;
-          middlewarePath = join(routeMiddlewarePath, file);
-          break;
-        }
-      }
-    }
-
-    if (!middlewarePath || !middlewareFile) {
-      return null;
-    }
-
-    let content: string;
-    try {
-      content = await readFile(middlewarePath, 'utf-8');
-    } catch {
-      return null;
-    }
-
-    const relPath = middlewarePath.startsWith(projectDir)
-      ? middlewarePath.slice(projectDir.length + 1)
-      : middlewarePath;
-
-    const authProvider = detectAuthProvider(content);
-
+  for (const fileRoute of fileRoutesList) {
     const nodeId = randomUUID();
-    const node: MiddlewareNode = {
+    fileRoutes.set(fileRoute.filePath, nodeId);
+
+    // Determine rendering strategy
+    let rendering: 'SSR' | 'Client' = 'SSR';
+    if (globalSPAMode || fileRoute.isClientOnly) {
+      rendering = 'Client';
+    }
+
+    // Extract group (first path segment)
+    const pathSegments = fileRoute.path.split('/').filter(Boolean);
+    const group = pathSegments.length > 0 ? pathSegments[0] : 'root';
+
+    const route: RouteNode = {
       id: nodeId,
-      type: 'middleware',
-      filePath: relPath,
-      label: middlewareFile.replace(/\.(ts|js)$/, ''),
-      group: 'middleware',
-      matcherPatterns: ['/*'],
-      authProvider: authProvider || undefined,
-      runtime: 'node',
+      type: 'page',
+      path: fileRoute.path,
+      filePath: fileRoute.filePath,
+      group,
+      label: basename(fileRoute.filePath, '.vue'),
+      rendering,
     };
 
-    // Create connectors for all routes (middleware runs on all requests)
-    const connectors: Connector[] = [];
-    for (const [_, routeId] of routeNodeIds) {
-      connectors.push({
-        source: nodeId,
-        target: routeId,
-        type: 'middleware-coverage',
-        confidence: 'static',
-        label: 'middleware coverage',
-        style: 'dashed',
-        color: 'orange',
-      });
-    }
-
-    return { node, connectors };
+    routes.push(route);
   }
+
+  return routes;
+}
+
+async function discoverApiRoutes(projectDir: string): Promise<RouteNode[]> {
+  const apiDir = join(projectDir, 'server', 'api');
+  const routes: RouteNode[] = [];
+
+  // Check if server/api directory exists
+  if (!(await dirExists(apiDir))) {
+    return routes;
+  }
+
+  const apiRoutes = await collectApiRouteFiles(apiDir, projectDir);
+
+  for (const apiRoute of apiRoutes) {
+    const nodeId = randomUUID();
+
+    // Extract group (first path segment, or 'api' for root)
+    const pathSegments = apiRoute.path.split('/').filter(Boolean);
+    const group = pathSegments.length > 1 ? pathSegments[0] : 'api';
+
+    const route: RouteNode = {
+      id: nodeId,
+      type: 'api',
+      path: apiRoute.path,
+      filePath: apiRoute.filePath,
+      group,
+      label: basename(apiRoute.filePath),
+      methods: apiRoute.methods as HttpMethod[],
+    };
+
+    routes.push(route);
+  }
+
+  return routes;
+}
+
+async function discoverMiddleware(
+  projectDir: string,
+  routeNodeIds: Map<string, string>,
+): Promise<MiddlewareResult | null> {
+  // Check server/middleware first, then middleware
+  const serverMiddlewarePath = join(projectDir, 'server', 'middleware');
+  const routeMiddlewarePath = join(projectDir, 'middleware');
+
+  let middlewarePath: string | null = null;
+  let middlewareFile: string | null = null;
+
+  if (await dirExists(serverMiddlewarePath)) {
+    const files = await readdir(serverMiddlewarePath);
+    for (const file of files) {
+      if (file.endsWith('.ts') || file.endsWith('.js')) {
+        middlewareFile = file;
+        middlewarePath = join(serverMiddlewarePath, file);
+        break;
+      }
+    }
+  }
+
+  if (!middlewarePath && (await dirExists(routeMiddlewarePath))) {
+    const files = await readdir(routeMiddlewarePath);
+    for (const file of files) {
+      if (file.endsWith('.ts') || file.endsWith('.js')) {
+        middlewareFile = file;
+        middlewarePath = join(routeMiddlewarePath, file);
+        break;
+      }
+    }
+  }
+
+  if (!middlewarePath || !middlewareFile) {
+    return null;
+  }
+
+  let content: string;
+  try {
+    content = await readFile(middlewarePath, 'utf-8');
+  } catch {
+    return null;
+  }
+
+  const relPath = middlewarePath.startsWith(projectDir) ? middlewarePath.slice(projectDir.length + 1) : middlewarePath;
+
+  const authProvider = detectAuthProvider(content);
+
+  const nodeId = randomUUID();
+  const node: MiddlewareNode = {
+    id: nodeId,
+    type: 'middleware',
+    filePath: relPath,
+    label: middlewareFile.replace(/\.(ts|js)$/, ''),
+    group: 'middleware',
+    matcherPatterns: ['/*'],
+    authProvider: authProvider || undefined,
+    runtime: 'node',
+  };
+
+  // Create connectors for all routes (middleware runs on all requests)
+  const connectors: Connector[] = [];
+  for (const [_, routeId] of routeNodeIds) {
+    connectors.push({
+      source: nodeId,
+      target: routeId,
+      type: 'middleware-coverage',
+      confidence: 'static',
+      label: 'middleware coverage',
+      style: 'dashed',
+      color: 'orange',
+    });
+  }
+
+  return { node, connectors };
+}
 
 export const nuxtDiscoverer: FrameworkDiscoverer = {
   discoverRoutes,
@@ -195,10 +196,7 @@ async function dirExists(path: string): Promise<boolean> {
 }
 
 async function isGlobalSPAMode(projectDir: string): Promise<boolean> {
-  const configPaths = [
-    join(projectDir, 'nuxt.config.ts'),
-    join(projectDir, 'nuxt.config.js'),
-  ];
+  const configPaths = [join(projectDir, 'nuxt.config.ts'), join(projectDir, 'nuxt.config.js')];
 
   for (const configPath of configPaths) {
     if (await fileExists(configPath)) {
@@ -232,7 +230,10 @@ async function collectRouteFiles(pagesDir: string, projectDir: string): Promise<
           if (!entry.name.startsWith('.')) {
             await walk(fullPath, relativePath);
           }
-        } else if (entry.isFile() && (entry.name.endsWith('.vue') || entry.name.endsWith('.tsx') || entry.name.endsWith('.ts'))) {
+        } else if (
+          entry.isFile() &&
+          (entry.name.endsWith('.vue') || entry.name.endsWith('.tsx') || entry.name.endsWith('.ts'))
+        ) {
           // Check for client-only rendering
           let isClientOnly = false;
           try {
@@ -262,7 +263,10 @@ async function collectRouteFiles(pagesDir: string, projectDir: string): Promise<
   return routes;
 }
 
-async function collectApiRouteFiles(apiDir: string, projectDir: string): Promise<Array<{ filePath: string; path: string; methods: string[] }>> {
+async function collectApiRouteFiles(
+  apiDir: string,
+  projectDir: string,
+): Promise<Array<{ filePath: string; path: string; methods: string[] }>> {
   const routes: Array<{ filePath: string; path: string; methods: string[] }> = [];
 
   async function walk(dir: string, prefix: string = '') {
@@ -314,7 +318,7 @@ function filePathToRoute(filePath: string): string {
 
   // Normalize path format
   if (!path.startsWith('/')) {
-    path = '/' + path;
+    path = `/${path}`;
   }
 
   return path;
@@ -333,7 +337,7 @@ function filePathToApiRoute(filePath: string): string {
   }
 
   // Prepend /api and normalize
-  const apiPath = '/api' + (path ? '/' + path : '');
+  const apiPath = `/api${path ? `/${path}` : ''}`;
   return apiPath;
 }
 

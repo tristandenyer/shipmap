@@ -1,6 +1,6 @@
-import { pathToFileURL } from 'node:url';
 import { access, constants } from 'node:fs/promises';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 export interface ExternalServiceConfig {
   name: string;
@@ -45,10 +45,10 @@ export async function loadConfig(projectDir: string): Promise<ShipmapConfig> {
       const config = mod.default ?? mod;
       validateConfig(config);
       return config;
-    } catch (err: any) {
-      if (err.code === 'ENOENT' || err.code === 'ERR_MODULE_NOT_FOUND') continue;
-      if (err.message?.startsWith('Invalid shipmap config')) throw err;
-      continue;
+    } catch (err: unknown) {
+      const e = err as { code?: string; message?: string };
+      if (e.code === 'ENOENT' || e.code === 'ERR_MODULE_NOT_FOUND') continue;
+      if (e.message?.startsWith('Invalid shipmap config')) throw err;
     }
   }
   return {};
@@ -58,6 +58,7 @@ function validateConfig(config: unknown): asserts config is ShipmapConfig {
   if (typeof config !== 'object' || config === null) {
     throw new Error('Invalid shipmap config: must export a default object');
   }
+  // biome-ignore lint/suspicious/noExplicitAny: validating unknown config shape requires dynamic property access
   const c = config as any;
 
   // Validate probe

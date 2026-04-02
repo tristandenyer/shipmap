@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
 import { discoverMiddleware } from '../src/discover/nextjs/middleware.js';
 
 const fixtures = join(__dirname, 'fixtures');
@@ -29,7 +29,7 @@ describe('discoverMiddleware', () => {
     const result = await discoverMiddleware(join(fixtures, 'nextjs-app-router'), routeNodeIds);
 
     expect(result).not.toBeNull();
-    const targetIds = result!.connectors.map(c => c.target);
+    const targetIds = result!.connectors.map((c) => c.target);
     expect(targetIds).toContain('dash-id');
     expect(targetIds).toContain('dash-users-id');
     expect(targetIds).toContain('settings-id');

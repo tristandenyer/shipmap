@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
-import { discoverRoutes } from '../src/discover/astro/routes.js';
+import { describe, expect, it } from 'vitest';
 import { discoverApiRoutes } from '../src/discover/astro/api.js';
 import { discoverMiddleware } from '../src/discover/astro/middleware.js';
+import { discoverRoutes } from '../src/discover/astro/routes.js';
 
 const fixtures = join(__dirname, 'fixtures', 'astro');
 
@@ -12,14 +12,14 @@ describe('Astro discoverer', () => {
       const routes = await discoverRoutes(fixtures);
       expect(routes.length).toBe(3);
 
-      const paths = routes.map(r => r.path).sort();
+      const paths = routes.map((r) => r.path).sort();
       expect(paths).toEqual(['/', '/about', '/blog/[slug]']);
     });
 
     it('detects SSG for static pages', async () => {
       const routes = await discoverRoutes(fixtures);
-      const home = routes.find(r => r.path === '/');
-      const about = routes.find(r => r.path === '/about');
+      const home = routes.find((r) => r.path === '/');
+      const about = routes.find((r) => r.path === '/about');
 
       expect(home?.rendering).toBe('SSG');
       expect(about?.rendering).toBe('SSG');
@@ -27,7 +27,7 @@ describe('Astro discoverer', () => {
 
     it('detects SSR when prerender = false in hybrid mode', async () => {
       const routes = await discoverRoutes(fixtures);
-      const blog = routes.find(r => r.path === '/blog/[slug]');
+      const blog = routes.find((r) => r.path === '/blog/[slug]');
 
       expect(blog?.rendering).toBe('SSR');
     });
@@ -35,8 +35,8 @@ describe('Astro discoverer', () => {
     it('groups routes by first path segment', async () => {
       const routes = await discoverRoutes(fixtures);
 
-      const rootRoutes = routes.filter(r => r.group === 'root');
-      const blogRoutes = routes.filter(r => r.group === 'blog');
+      const rootRoutes = routes.filter((r) => r.group === 'root');
+      const blogRoutes = routes.filter((r) => r.group === 'blog');
 
       expect(rootRoutes.length).toBe(2); // / and /about
       expect(blogRoutes.length).toBe(1); // /blog/[slug]
@@ -44,7 +44,7 @@ describe('Astro discoverer', () => {
 
     it('sets correct filePaths relative to project', async () => {
       const routes = await discoverRoutes(fixtures);
-      const home = routes.find(r => r.path === '/');
+      const home = routes.find((r) => r.path === '/');
 
       expect(home?.filePath).toBe('src/pages/index.astro');
     });
@@ -64,7 +64,7 @@ describe('Astro discoverer', () => {
 
     it('detects HTTP methods from exports', async () => {
       const routes = await discoverApiRoutes(fixtures);
-      const users = routes.find(r => r.path === '/api/users');
+      const users = routes.find((r) => r.path === '/api/users');
 
       expect(users?.methods).toContain('GET');
       expect(users?.methods).toContain('POST');
@@ -73,7 +73,7 @@ describe('Astro discoverer', () => {
 
     it('sets type to api', async () => {
       const routes = await discoverApiRoutes(fixtures);
-      expect(routes.every(r => r.type === 'api')).toBe(true);
+      expect(routes.every((r) => r.type === 'api')).toBe(true);
     });
 
     it('groups api routes by first path segment', async () => {
@@ -142,7 +142,7 @@ describe('Astro discoverer', () => {
       expect(result).not.toBeNull();
       expect(result!.connectors.length).toBe(3);
 
-      const targetIds = result!.connectors.map(c => c.target);
+      const targetIds = result!.connectors.map((c) => c.target);
       expect(targetIds).toContain('home-id');
       expect(targetIds).toContain('about-id');
       expect(targetIds).toContain('users-id');

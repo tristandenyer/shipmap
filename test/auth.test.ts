@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { writeFile, mkdir, rm } from 'node:fs/promises';
+import { describe, expect, it } from 'vitest';
 import { detectAuth } from '../src/probe/auth.js';
 
 const tmpDir = join(__dirname, 'tmp-auth-test');
@@ -12,7 +12,9 @@ describe('detectAuth', () => {
   }
 
   async function cleanup() {
-    try { await rm(tmpDir, { recursive: true }); } catch {}
+    try {
+      await rm(tmpDir, { recursive: true });
+    } catch {}
   }
 
   it('returns null when no env files exist', async () => {

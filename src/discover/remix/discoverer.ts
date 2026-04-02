@@ -1,7 +1,7 @@
-import type { FrameworkDiscoverer, MiddlewareResult, ExternalsResult } from '../types.js';
-import { discoverRoutes } from './routes.js';
-import { discoverApiRoutes } from './api.js';
 import { discoverExternals } from '../nextjs/externals.js';
+import type { FrameworkDiscoverer } from '../types.js';
+import { discoverApiRoutes } from './api.js';
+import { discoverRoutes } from './routes.js';
 
 export const remixDiscoverer: FrameworkDiscoverer = {
   discoverRoutes,

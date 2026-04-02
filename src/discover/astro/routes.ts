@@ -1,11 +1,7 @@
-import { readFile, readdir, stat } from 'node:fs/promises';
-import { join, relative, extname, parse } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import type { RouteNode, RenderingStrategy } from '../../types.js';
-
-interface AstroConfig {
-  output?: 'static' | 'server' | 'hybrid';
-}
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { extname, join, relative } from 'node:path';
+import type { RenderingStrategy, RouteNode } from '../../types.js';
 
 export async function discoverRoutes(projectDir: string): Promise<RouteNode[]> {
   const routes: RouteNode[] = [];
@@ -94,7 +90,7 @@ function astroFilePathToRoute(relPath: string): string {
 
   // Ensure leading slash
   if (!route.startsWith('/')) {
-    route = '/' + route;
+    route = `/${route}`;
   }
 
   return route;

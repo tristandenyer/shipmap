@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { evaluateCi, formatCiOutput } from '../src/ci/runner.js';
-import type { TopologyReport, RouteNode, ExternalNode } from '../src/types.js';
 import type { DiffResult } from '../src/diff/compare.js';
+import type { ExternalNode, RouteNode, TopologyReport } from '../src/types.js';
 
 const createMockReport = (overrides?: Partial<TopologyReport>): TopologyReport => ({
   meta: {

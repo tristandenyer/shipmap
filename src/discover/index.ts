@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
-import { join, basename } from 'node:path';
-import type { TopologyReport, TopologyNode, Connector, FrameworkType } from '../types.js';
+import { basename, join } from 'node:path';
 import type { ExternalServiceConfig } from '../config.js';
 import { detectFramework } from '../detect/framework.js';
+import type { Connector, FrameworkType, TopologyNode, TopologyReport } from '../types.js';
 import type { FrameworkDiscoverer } from './types.js';
 
 async function getDiscoverer(frameworkType: FrameworkType): Promise<FrameworkDiscoverer> {
@@ -103,9 +103,7 @@ export async function discover(
     renderingBreakdown[strategy] = (renderingBreakdown[strategy] || 0) + 1;
   }
 
-  const protectedRoutes = middlewareResult
-    ? middlewareResult.connectors.length
-    : 0;
+  const protectedRoutes = middlewareResult ? middlewareResult.connectors.length : 0;
 
   const report: TopologyReport = {
     meta: {

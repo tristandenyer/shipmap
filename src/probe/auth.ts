@@ -21,8 +21,7 @@ async function loadEnvVars(projectDir: string): Promise<Record<string, string>> 
         const key = trimmed.slice(0, eqIdx).trim();
         let value = trimmed.slice(eqIdx + 1).trim();
         // Strip surrounding quotes
-        if ((value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))) {
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
           value = value.slice(1, -1);
         }
         if (!vars[key]) vars[key] = value;
@@ -34,9 +33,7 @@ async function loadEnvVars(projectDir: string): Promise<Record<string, string>> 
   return vars;
 }
 
-export async function detectAuth(
-  projectDir: string,
-): Promise<AuthResult | null> {
+export async function detectAuth(projectDir: string): Promise<AuthResult | null> {
   const env = await loadEnvVars(projectDir);
 
   // NextAuth / Auth.js
@@ -45,18 +42,18 @@ export async function detectAuth(
     // We use a basic base64-encoded JWT structure (not cryptographically signed for real auth,
     // but sufficient for probing routes that check for session presence)
     const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-    const payload = Buffer.from(JSON.stringify({
-      sub: 'shipmap-probe',
-      name: 'Shipmap Probe',
-      email: 'probe@shipmap.dev',
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600,
-    })).toString('base64url');
+    const payload = Buffer.from(
+      JSON.stringify({
+        sub: 'shipmap-probe',
+        name: 'Shipmap Probe',
+        email: 'probe@shipmap.dev',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      }),
+    ).toString('base64url');
     // Sign with HMAC-SHA256 using the NEXTAUTH_SECRET
     const { createHmac } = await import('node:crypto');
-    const signature = createHmac('sha256', env.NEXTAUTH_SECRET)
-      .update(`${header}.${payload}`)
-      .digest('base64url');
+    const signature = createHmac('sha256', env.NEXTAUTH_SECRET).update(`${header}.${payload}`).digest('base64url');
     const token = `${header}.${payload}.${signature}`;
 
     return {
@@ -71,7 +68,7 @@ export async function detectAuth(
       Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
     };
     if (env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      headers['apikey'] = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      headers.apikey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     }
     return { provider: 'Supabase', headers };
   }

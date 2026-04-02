@@ -1,4 +1,4 @@
-import type { TopologyReport, TopologyNode, ProbeResult, RouteNode, Connector } from '../types.js';
+import type { Connector, ProbeResult, RouteNode, TopologyNode, TopologyReport } from '../types.js';
 
 export interface NodeChange {
   node: TopologyNode;
@@ -29,10 +29,7 @@ function getNodePath(node: TopologyNode): string | null {
   return null;
 }
 
-export function compareTopology(
-  current: TopologyReport,
-  previous: TopologyReport,
-): DiffResult {
+export function compareTopology(current: TopologyReport, previous: TopologyReport): DiffResult {
   const prevByPath = new Map<string, TopologyNode>();
   const currByPath = new Map<string, TopologyNode>();
 
@@ -81,8 +78,8 @@ export function compareTopology(
   const prevConnKeys = new Set(previous.connectors.map(connKey));
   const currConnKeys = new Set(current.connectors.map(connKey));
 
-  const addedConnectors = current.connectors.filter(c => !prevConnKeys.has(connKey(c)));
-  const removedConnectors = previous.connectors.filter(c => !currConnKeys.has(connKey(c)));
+  const addedConnectors = current.connectors.filter((c) => !prevConnKeys.has(connKey(c)));
+  const removedConnectors = previous.connectors.filter((c) => !currConnKeys.has(connKey(c)));
 
   return {
     added,
@@ -117,9 +114,7 @@ function detectChanges(curr: TopologyNode, prev: TopologyNode): string[] {
 
     // Response time change (>50%)
     if (curr.probe?.responseTime !== undefined && prev.probe?.responseTime !== undefined) {
-      const ratio = prev.probe.responseTime > 0
-        ? curr.probe.responseTime / prev.probe.responseTime
-        : 0;
+      const ratio = prev.probe.responseTime > 0 ? curr.probe.responseTime / prev.probe.responseTime : 0;
       if (ratio > 1.5) {
         changes.push(`Response time increased: ${prev.probe.responseTime}ms → ${curr.probe.responseTime}ms`);
       } else if (ratio < 0.5 && ratio > 0) {
@@ -134,8 +129,8 @@ function detectChanges(curr: TopologyNode, prev: TopologyNode): string[] {
 
     // Methods (API routes)
     if (curr.methods && prev.methods) {
-      const added = curr.methods.filter(m => !prev.methods!.includes(m));
-      const removed = prev.methods.filter(m => !curr.methods!.includes(m));
+      const added = curr.methods.filter((m) => !prev.methods!.includes(m));
+      const removed = prev.methods.filter((m) => !curr.methods!.includes(m));
       if (added.length > 0) changes.push(`New methods: ${added.join(', ')}`);
       if (removed.length > 0) changes.push(`Removed methods: ${removed.join(', ')}`);
     }
@@ -147,7 +142,7 @@ function detectChanges(curr: TopologyNode, prev: TopologyNode): string[] {
 
     // Middleware coverage
     if (curr.middleware && prev.middleware) {
-      const newMw = curr.middleware.filter(m => !prev.middleware!.includes(m));
+      const newMw = curr.middleware.filter((m) => !prev.middleware!.includes(m));
       if (newMw.length > 0) changes.push(`New middleware: ${newMw.join(', ')}`);
     } else if (curr.middleware && !prev.middleware) {
       changes.push(`Now covered by middleware`);
@@ -155,7 +150,7 @@ function detectChanges(curr: TopologyNode, prev: TopologyNode): string[] {
 
     // External dependencies
     if (curr.externals && prev.externals) {
-      const newExt = curr.externals.filter(e => !prev.externals!.includes(e));
+      const newExt = curr.externals.filter((e) => !prev.externals!.includes(e));
       if (newExt.length > 0) changes.push(`New external dependency: ${newExt.join(', ')}`);
     } else if (curr.externals && !prev.externals) {
       changes.push(`New external dependencies: ${curr.externals.join(', ')}`);

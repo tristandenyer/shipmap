@@ -1,6 +1,7 @@
-import { readdir, stat } from 'node:fs/promises';
-import { join, relative, extname } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import type { Dirent } from 'node:fs';
+import { readdir, stat } from 'node:fs/promises';
+import { extname, join, relative } from 'node:path';
 import type { RouteNode } from '../../types.js';
 
 const ROUTE_DIRS = ['pages', 'routes', 'views', 'src/pages', 'src/routes', 'src/views'];
@@ -73,7 +74,7 @@ async function findFilesInDir(dir: string): Promise<string[]> {
   const results: string[] = [];
 
   async function walk(current: string) {
-    let entries;
+    let entries: Dirent[];
     try {
       entries = await readdir(current, { withFileTypes: true });
     } catch {
@@ -101,7 +102,7 @@ async function findFilesInDir(dir: string): Promise<string[]> {
   return results.sort();
 }
 
-async function dirExists(dir: string): Promise<boolean> {
+async function _dirExists(dir: string): Promise<boolean> {
   try {
     const s = await stat(dir);
     return s.isDirectory();
