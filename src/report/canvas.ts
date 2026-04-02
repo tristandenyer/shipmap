@@ -336,7 +336,7 @@ export function getCanvasScript(): string {
       if (!isGhost) {
         actions = '<div class="node-actions">';
         if (node.path) {
-          actions += '<button class="node-action-btn" data-action="copy" data-path="' + escapeHtml(node.path) + '" title="Copy path">&#128203;</button>';
+          actions += '<button class="node-action-btn" data-action="copy" data-path="' + escapeHtml(node.path) + '" title="Copy path"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3a1.5 1.5 0 00-1.5-1.5H3A1.5 1.5 0 001.5 3v6A1.5 1.5 0 003 10.5h2.5"/></svg></button>';
         }
         if (REPORT.meta.mode === 'probe' && (node.type === 'page' || node.type === 'api') && node.path) {
           actions += '<button class="node-action-btn" data-action="open" data-path="' + escapeHtml(node.path) + '" title="Open in browser">&#8599;</button>';
